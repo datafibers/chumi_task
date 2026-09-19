@@ -1,0 +1,30 @@
+{"msg_id": "001", "user_id": "alice", "timestamp": "2024-01-15T10:00:00Z", "text": "Selling Claude API credits, 4.0 per unit, have about 500k.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "002", "user_id": "alice", "timestamp": "2024-01-15T10:01:00Z", "text": "Typo sorry, meant 3.8 per unit not 4.0", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "003", "user_id": "bob", "timestamp": "2024-01-15T10:05:00Z", "text": "Still looking for 500k OpenAI credits, below 4 if possible.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "004", "user_id": "carol", "timestamp": "2024-01-15T10:06:00Z", "text": "Got 8-card A100s, spot, anyone interested?", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "005", "user_id": "broker_x", "timestamp": "2024-01-15T11:00:00Z", "text": "Discounted Midjourney annual subs, $150 each, limited stock.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "006", "user_id": "broker_x", "timestamp": "2024-01-15T11:05:00Z", "text": "Discounted Midjourney annual subs, $150 each, limited stock.", "reply_to": null, "group_id": "grp_secondary"}
+{"msg_id": "007", "user_id": "broker_y", "timestamp": "2024-01-15T11:10:00Z", "text": "Discounted Midjourney annual subs, $150 each, limited stock.", "reply_to": null, "group_id": "grp_resellers"}
+{"msg_id": "008", "user_id": "dave", "timestamp": "2024-01-15T12:00:00Z", "text": "Remember when OpenAI credits were going for 2.0? Crazy times lol.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "009", "user_id": "eve", "timestamp": "2024-01-15T12:02:00Z", "text": "The 3.8 seller from yesterday is completely ignoring my DMs now.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "010", "user_id": "frank", "timestamp": "2024-01-15T12:05:00Z", "text": "AWS quotas are so annoying this week honestly.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "011", "user_id": "grace", "timestamp": "2024-01-15T13:00:00Z", "text": "Got 2 AWS $100k accounts at 30% off, and throwing in a GCP $50k account for 25% off.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "012", "user_id": "henry", "timestamp": "2024-01-15T14:00:00Z", "text": "Need $120 OpenAI accounts, anyone have stock?", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "013", "user_id": "ivan", "timestamp": "2024-01-15T14:02:00Z", "text": "I have 5. Standard rate?", "reply_to": "012", "group_id": "grp_ai_trading"}
+{"msg_id": "014", "user_id": "henry", "timestamp": "2024-01-15T14:03:00Z", "text": "Deal, PM me.", "reply_to": "013", "group_id": "grp_ai_trading"}
+{"msg_id": "015", "user_id": "judy", "timestamp": "2024-01-15T15:00:00Z", "text": "Selling: Claude 4.2 around 100k available.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "016", "user_id": "kyle", "timestamp": "2024-01-15T15:05:00Z", "text": "WTB Sonnet API keys, budget is flexible.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "017", "user_id": "kyle", "timestamp": "2024-01-15T15:06:00Z", "text": "Actually I mean Claude 3.5 Sonnet specifically.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "018", "user_id": "lisa", "timestamp": "2024-01-15T15:30:00Z", "text": "Anyone selling Gemini Pro API access? Need at least 1M tokens.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "019", "user_id": "mike", "timestamp": "2024-01-15T16:00:00Z", "text": "Out of Claude. Cleaned out.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "020", "user_id": "nancy", "timestamp": "2024-01-15T16:05:00Z", "text": "Does the 500k OpenAI lot from earlier still have stock?", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "021", "user_id": "bob", "timestamp": "2024-01-15T16:06:00Z", "text": "Yes still looking, pm me if you have.", "reply_to": "020", "group_id": "grp_ai_trading"}
+{"msg_id": "022", "user_id": "oscar", "timestamp": "2024-01-15T16:30:00Z", "text": "H100 cluster, 8 GPUs, $2.8/hr, spot instance, available now.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "023", "user_id": "oscar", "timestamp": "2024-01-15T16:31:00Z", "text": "Sorry that's $2.8 per GPU per hour", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "024", "user_id": "peter", "timestamp": "2024-01-15T17:00:00Z", "text": "Anyone know what happened to that gpt4 guy? Haven't seen him post since last week.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "025", "user_id": "quinn", "timestamp": "2024-01-15T17:05:00Z", "text": "Selling OpenAI o1 access, have org account, negotiable.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "026", "user_id": "rachel", "timestamp": "2024-01-15T17:10:00Z", "text": "WTB: claude tokens, ideally 3.5 or 4, quantity 200k minimum.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "027", "user_id": "sam", "timestamp": "2024-01-15T17:15:00Z", "text": "Midjourney sub gone. Sold.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "028", "user_id": "broker_x", "timestamp": "2024-01-15T17:30:00Z", "text": "Discounted Midjourney annual subs, $150 each, limited stock.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "029", "user_id": "tina", "timestamp": "2024-01-15T18:00:00Z", "text": "AWS seems harder to get this week, prices going up.", "reply_to": null, "group_id": "grp_ai_trading"}
+{"msg_id": "030", "user_id": "uma", "timestamp": "2024-01-15T18:05:00Z", "text": "Selling 3 Cursor Pro annual subs, $40 each.", "reply_to": null, "group_id": "grp_ai_trading"}

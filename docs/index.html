@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Market Signal Intelligence Bot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    /* Carousel Styles */
+    .carousel-container { position: relative; width: 100%; max-width: 1100px; margin: 0 auto; overflow: hidden; border-radius: 16px; box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.15); border: 1px solid #e2e8f0; background: #fff; }
+    .carousel-slides { display: flex; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); height: auto; align-items: center; }
+    .slide { min-width: 100%; object-fit: contain; }
+    .carousel-indicators { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+    .indicator { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.4); border: 1px solid rgba(0,0,0,0.1); cursor: pointer; transition: all 0.3s; }
+    .indicator.active { background: #3b82f6; border-color: #2563eb; transform: scale(1.2); }
+    
+    /* Chat Box Styles */
+    .chat-box { background:#f1f5f9; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-top:12px; font-size:13.5px; color:#334155; }
+    .chat-msg { margin-bottom:8px; line-height: 1.5; }
+    .chat-msg:last-child { margin-bottom:0; }
+    .chat-user { font-weight:600; color:#475569; display:inline-block; width:85px; }
+    
+    /* Custom Gradient Text */
+    .text-gradient { background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-image: linear-gradient(90deg, #1e3a8a, #3b82f6); }
+  </style>
+</head>
+<body class="antialiased">
+
+  <!-- Navbar -->
+  <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        <div class="flex items-center gap-2">
+          <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+          <span class="font-bold text-xl tracking-tight text-slate-900">MarketSignal</span>
+        </div>
+        <div class="hidden md:flex space-x-8 text-sm font-medium text-slate-600">
+          <a href="#architecture" class="hover:text-blue-600 transition">Architecture</a>
+          <a href="#models" class="hover:text-blue-600 transition">Data Models</a>
+          <a href="#scenarios" class="hover:text-blue-600 transition">Adversarial Scenarios</a>
+          <a href="#evaluation" class="hover:text-blue-600 transition">Calibration</a>
+          <a href="https://github.com/datafibers/chumi_task" target="_blank" class="text-blue-600 hover:text-blue-700 transition flex items-center gap-1">
+            GitHub <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="pt-20 pb-16 px-4 text-center">
+    <div class="max-w-4xl mx-auto">
+      <h1 class="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight mb-6">
+        Extract <span class="text-gradient">Auditable Signals</span><br>from Noisy Chat Streams.
+      </h1>
+      <p class="text-lg md:text-xl text-slate-500 mb-10 max-w-2xl mx-auto leading-relaxed">
+        A real-time data pipeline combining deterministic context assembly, OpenRouter LLM extraction, and Pandas aggregation to deliver live market depth dashboards.
+      </p>
+      
+      <!-- Badges -->
+      <div class="flex flex-wrap justify-center gap-3 mb-16 text-sm font-medium">
+        <span class="px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">JSONL Replay</span>
+        <span class="px-4 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">OpenRouter (Gemini/Claude)</span>
+        <span class="px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">SQLite</span>
+        <span class="px-4 py-1.5 rounded-full bg-red-50 text-red-700 border border-red-200">Streamlit</span>
+        <span class="px-4 py-1.5 rounded-full bg-green-50 text-green-700 border border-green-200">Pandas DataFrames</span>
+      </div>
+    </div>
+
+    <!-- Carousel -->
+    <div class="carousel-container relative" id="carousel">
+      <div class="carousel-slides" id="slides">
+        <img src="screenshot.png" alt="Dashboard View 1" class="slide">
+        <img src="screenshot2.png" alt="Dashboard View 2" class="slide">
+        <img src="screenshot3.png" alt="Dashboard View 3" class="slide">
+      </div>
+      <div class="carousel-indicators" id="indicators">
+        <div class="indicator active" onclick="goToSlide(0)"></div>
+        <div class="indicator" onclick="goToSlide(1)"></div>
+        <div class="indicator" onclick="goToSlide(2)"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Content Sections -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24">
+
+    <!-- Overview Grid -->
+    <section>
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-slate-900 mb-4">Built for Unstructured Chaos</h2>
+        <p class="text-slate-500 max-w-2xl mx-auto">This system focuses on extracting <strong>market signals</strong> rather than generic summaries. It maintains a strict provenance trail back to the source messages.</p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
+          <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+          </div>
+          <h3 class="font-bold text-slate-900 mb-2">Fully Auditable</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Every signal retains source message IDs, raw strings, and an LLM-generated rationale. Trace every price back to the exact chat.</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
+          <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          </div>
+          <h3 class="font-bold text-slate-900 mb-2">Deterministic Replay</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Operates on an append-only JSONL stream. Re-run pipelines instantly to benchmark prompt or model changes over the same data.</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
+          <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-lg flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          </div>
+          <h3 class="font-bold text-slate-900 mb-2">Uncertainty-Aware</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">If units or resources are missing, the system preserves the raw state and lowers confidence rather than hallucinating precise values.</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition">
+          <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          </div>
+          <h3 class="font-bold text-slate-900 mb-2">Model Agnostic</h3>
+          <p class="text-sm text-slate-500 leading-relaxed">Integrates via standard OpenAI-compatible SDKs (e.g., OpenRouter) enabling seamless fallback routing (Flash → Pro).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture" class="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm">
+      <h2 class="text-3xl font-bold text-slate-900 mb-8 border-b border-slate-100 pb-4">Architecture Pipeline</h2>
+      <div class="flex flex-col md:flex-row items-stretch gap-4 text-sm font-medium">
+        <div class="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-5 text-center">
+          <span class="block text-blue-600 mb-2 text-lg">1. Ingestion</span>
+          <span class="text-slate-600 font-normal">JSONL Stream<br>Event Validation</span>
+        </div>
+        <div class="hidden md:flex items-center text-slate-300">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        </div>
+        <div class="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-5 text-center">
+          <span class="block text-blue-600 mb-2 text-lg">2. Assembly</span>
+          <span class="text-slate-600 font-normal">Reply Chain resolution<br>Group Time Windows</span>
+        </div>
+        <div class="hidden md:flex items-center text-slate-300">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        </div>
+        <div class="flex-1 bg-blue-50 border border-blue-200 rounded-xl p-5 text-center shadow-sm relative">
+          <span class="absolute -top-3 -right-3 bg-blue-600 text-white text-xs px-2 py-1 rounded-full shadow">LLM</span>
+          <span class="block text-blue-700 mb-2 text-lg">3. Extraction</span>
+          <span class="text-slate-600 font-normal">OpenRouter Schema<br>(Flash primary, Pro fallback)</span>
+        </div>
+        <div class="hidden md:flex items-center text-slate-300">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        </div>
+        <div class="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-5 text-center">
+          <span class="block text-blue-600 mb-2 text-lg">4. Normalization</span>
+          <span class="text-slate-600 font-normal">Alias Mapping<br>Hash Deduplication</span>
+        </div>
+        <div class="hidden md:flex items-center text-slate-300">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        </div>
+        <div class="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-5 text-center">
+          <span class="block text-blue-600 mb-2 text-lg">5. Presentation</span>
+          <span class="text-slate-600 font-normal">Pandas Aggregation<br>Streamlit Live UI</span>
+        </div>
+      </div>
+      <div class="mt-8 bg-blue-50/50 border border-blue-100 rounded-xl p-5 text-slate-600 text-sm">
+        <strong class="text-blue-800">Division of Labor:</strong> The LLM is exclusively responsible for semantic understanding (intent, implicit references). Deterministic Python code handles schema validation, alias normalization, deduplication, state overwrites, and statistical aggregation.
+      </div>
+    </section>
+
+    <!-- Scenarios Section -->
+    <section id="scenarios">
+      <div class="text-center mb-12">
+        <h2 class="text-3xl font-bold text-slate-900 mb-4">Handling Adversarial Chaos</h2>
+        <p class="text-slate-500 max-w-2xl mx-auto">The pipeline is designed to conquer the reality of informal trading chats: typos, slang, spam, and fragmented thoughts.</p>
+      </div>
+
+      <!-- Scenarios Carousel Wrapper -->
+      <div class="relative overflow-hidden w-full group" id="scenario-wrapper">
+        <div class="flex transition-transform duration-700 ease-in-out w-[300%]" id="scenario-slides">
+          
+          <!-- SCREEN 1 (Cases 1-4) -->
+          <div class="w-1/3 px-4">
+            <div class="grid lg:grid-cols-2 gap-8">
+              <!-- Case 1 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">1: Self-Correction</h3>
+                  <p class="text-sm text-slate-500">Users often correct typos in follow-ups. Context assembly merges them so the LLM extracts only the final value.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">alice:</span> Selling Claude API, 4.0/unit.</div><div class="chat-msg"><span class="chat-user">alice:</span> Typo sorry, meant 3.8.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Extracts <code class="text-green-700 bg-green-100 px-1 rounded">sell</code> for <code class="text-green-700 bg-green-100 px-1 rounded">Claude_API</code> at <code class="text-green-700 bg-green-100 px-1 rounded">3.8</code>.</div>
+              </div>
+              <!-- Case 2 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">2: Missing Units & Slang</h3>
+                  <p class="text-sm text-slate-500">Informal markets use slang (e.g., "8-card", "below 4"). Raw strings are preserved when precise parsing fails.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">carol:</span> Got 8-card A100s, spot.</div><div class="chat-msg"><span class="chat-user">bob:</span> Looking for 500k OpenAI, below 4.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Maps "A100s" to <code class="text-green-700 bg-green-100 px-1 rounded">A100_GPU</code>. "below 4" is stored in <code class="text-green-700 bg-green-100 px-1 rounded">raw_price_str</code>.</div>
+              </div>
+              <!-- Case 3 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">3: Broker Spam Deduplication</h3>
+                  <p class="text-sm text-slate-500">Brokers spam identical messages. A content hash suppresses duplicates across groups.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg text-slate-400"><span class="chat-user">broker_x:</span> Discounted MJ subs... <i class="text-xs">(grp_A)</i></div><div class="chat-msg"><span class="chat-user">broker_y:</span> Discounted MJ subs... <i class="text-xs">(grp_B)</i></div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Only the first message generates a signal. Hash match drops the rest.</div>
+              </div>
+              <!-- Case 4 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">4: Historical & Chatter</h3>
+                  <p class="text-sm text-slate-500">Complaints or reminiscing about past prices should not affect the current market depth median.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">dave:</span> Remember when OpenAI was 2.0? Crazy.</div><div class="chat-msg"><span class="chat-user">frank:</span> AWS quotas are so annoying lately.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Intent marked <code class="text-green-700 bg-green-100 px-1 rounded">historical</code> and <code class="text-green-700 bg-green-100 px-1 rounded">irrelevant</code>. Excluded from aggregation.</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- SCREEN 2 (Cases 5-8) -->
+          <div class="w-1/3 px-4">
+            <div class="grid lg:grid-cols-2 gap-8">
+              <!-- Case 5 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">5: Bundled Offers</h3>
+                  <p class="text-sm text-slate-500">A single message contains multiple resources, distinct quantities, and different discount semantics.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">grace:</span> Got AWS $100k accounts at 30% off, and throwing in a GCP $50k account for 25% off.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Generates two distinct signals (<code class="text-green-700 bg-green-100 px-1 rounded">AWS_Compute</code> and <code class="text-green-700 bg-green-100 px-1 rounded">GCP_Compute</code>).</div>
+              </div>
+              <!-- Case 6 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">6: Multi-party Threads</h3>
+                  <p class="text-sm text-slate-500">Replies form a thread where the final commitment relies on the root resource message.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">henry:</span> Need $120 OpenAI stock.</div><div class="chat-msg pl-4 border-l-2 border-blue-200 mt-2"><span class="chat-user">ivan:</span> I have 5. Standard rate?</div><div class="chat-msg pl-8 border-l-2 border-indigo-200 mt-2"><span class="chat-user">henry:</span> Deal, PM me.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Extracts <code class="text-green-700 bg-green-100 px-1 rounded">transaction_completed</code> at price <code class="text-green-700 bg-green-100 px-1 rounded">120</code>.</div>
+              </div>
+              <!-- Case 7 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">7: Contradictory Quotes</h3>
+                  <p class="text-sm text-slate-500">Users disagreeing on current rates. Both are extracted; median aggregation naturally handles the spread.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">user_j:</span> Claude API is 3.8 today.</div><div class="chat-msg"><span class="chat-user">user_k:</span> No, I can get it at 4.2.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Retains both prices. Dispersion and range (3.8 - 4.2) are shown in UI.</div>
+              </div>
+              <!-- Case 8 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">8: Alias vs Unknown</h3>
+                  <p class="text-sm text-slate-500">Known slang is mapped to a canonical ontology. Totally new resources are flagged as unknown but tracked.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">user_l:</span> Sonnet quota available.</div><div class="chat-msg"><span class="chat-user">user_n:</span> New model X access, 20 slots.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Maps "Sonnet" to canonical. Stores "model X" as <code class="text-green-700 bg-green-100 px-1 rounded">unknown:model_x</code>.</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- SCREEN 3 (Cases 9-10) -->
+          <div class="w-1/3 px-4">
+            <div class="grid lg:grid-cols-2 gap-8">
+              <!-- Case 9 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">9: Irrelevant Numbers</h3>
+                  <p class="text-sm text-slate-500">Not every number is a price or volume. The LLM must discern intent to avoid hallucinating false offers.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">user_o:</span> The model had 2 million downloads last month.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Ignored. <code class="text-green-700 bg-green-100 px-1 rounded">no_actionable_signal</code> returned.</div>
+              </div>
+              <!-- Case 10 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">10: Incomplete Reply Chain</h3>
+                  <p class="text-sm text-slate-500">When the parent message is missing from the stream, the AI extracts what it can but lowers confidence.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">user_q:</span> Yes, I can take 200 at 3.8. <i>(reply to unknown)</i></div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Extracts price and volume but leaves resource as <code class="text-green-700 bg-green-100 px-1 rounded">unknown</code>.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Arrows -->
+        <button onclick="prevScenario()" class="absolute top-1/2 -translate-y-1/2 left-0 md:-left-4 bg-white/90 hover:bg-blue-600 hover:text-white text-slate-600 border border-slate-200 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors z-10">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <button onclick="nextScenario()" class="absolute top-1/2 -translate-y-1/2 right-0 md:-right-4 bg-white/90 hover:bg-blue-600 hover:text-white text-slate-600 border border-slate-200 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors z-10">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+        
+        <!-- Indicators -->
+        <div class="flex justify-center mt-6 gap-2" id="scen-indicators">
+          <div class="w-3 h-3 rounded-full bg-blue-600 cursor-pointer"></div>
+          <div class="w-3 h-3 rounded-full bg-slate-300 cursor-pointer"></div>
+          <div class="w-3 h-3 rounded-full bg-slate-300 cursor-pointer"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Calibration Section -->
+    <section id="evaluation" class="bg-slate-900 text-white p-10 rounded-3xl border border-slate-800 shadow-xl mt-12 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 -mr-20 -mt-20"></div>
+      <div class="relative z-10">
+        <h2 class="text-3xl font-bold mb-6 border-b border-slate-700 pb-4">Golden Dataset & LLM Calibration</h2>
+        <div class="grid md:grid-cols-2 gap-10 items-center">
+          <div>
+            <p class="text-slate-300 text-lg mb-6 leading-relaxed">
+              Because LLMs are non-deterministic, modifying prompts or switching models (e.g., from Gemini Flash to Pro) can cause silent regressions. We prevent this by enforcing a <strong>Golden Regression Suite</strong>.
+            </p>
+            <ul class="space-y-4 text-slate-300">
+              <li class="flex items-start">
+                <svg class="w-6 h-6 text-blue-400 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span><strong>Hand-labeled Golden Cases:</strong> Contains highly adversarial chats (slang, corrections, bundles) mapped to exact expected JSON outputs.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-6 h-6 text-blue-400 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                <span><strong>Calibration Pre-flight:</strong> The Streamlit UI forces a <code>Run Golden Tests</code> check before starting the live stream. If the LLM extraction accuracy falls below 75%, the pipeline refuses to run.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-6 h-6 text-blue-400 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span><strong>Cost-Aware Routing:</strong> During live runs, if the primary model's confidence drops below threshold on complex chats, the pipeline automatically routes the context to a heavier fallback model (Pro).</span>
+              </li>
+            </ul>
+          </div>
+          <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 font-mono text-sm text-slate-300 shadow-inner">
+            <div class="text-green-400 mb-2">$ python -m eval_suite</div>
+            <div class="mb-1">Loading golden dataset... [OK]</div>
+            <div class="mb-1">Testing Context 1 (Self-Correction)... <span class="text-green-400">[PASS]</span></div>
+            <div class="mb-1">Testing Context 2 (Bundle Offer)... <span class="text-green-400">[PASS]</span></div>
+            <div class="mb-1">Testing Context 3 (Broker Spam)... <span class="text-green-400">[PASS]</span></div>
+            <div class="mb-4">Testing Context 4 (Slang Inference)... <span class="text-red-400">[FAIL]</span></div>
+            <div class="text-red-400 mb-2">Error: Expected unit 'gpu', got 'unknown'</div>
+            <div class="border-t border-slate-600 pt-2 mt-2">
+              Accuracy: <span class="text-amber-400">75% (3/4)</span><br>
+              Status: <span class="text-green-400">Threshold met, safe to deploy.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+  </main>
+
+  <footer class="bg-white border-t border-slate-200 py-10 text-center">
+    <div class="max-w-7xl mx-auto px-4">
+      <h2 class="text-xl font-bold text-slate-900 mb-4">Market Signal Intelligence Bot</h2>
+      <p class="text-slate-500 text-sm mb-6">Designed as a technical showcase for automated unstructured data processing.</p>
+      <div class="flex justify-center gap-4 text-sm text-slate-400">
+        <span>Built with Python & Streamlit</span>
+        <span>•</span>
+        <span>Powered by OpenRouter LLMs</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Simple Carousel Logic
+    let currentSlide = 0;
+    const slides = document.getElementById('slides');
+    const indicators = document.querySelectorAll('.indicator');
+    const totalSlides = indicators.length;
+
+    function updateCarousel() {
+      slides.style.transform = `translateX(-${currentSlide * 100}%)`;
+      indicators.forEach((ind, i) => {
+        if (i === currentSlide) ind.classList.add('active');
+        else ind.classList.remove('active');
+      });
+    }
+
+    function goToSlide(index) {
+      currentSlide = index;
+      updateCarousel();
+      resetInterval();
+    }
+
+    function nextSlide() {
+      currentSlide = (currentSlide + 1) % totalSlides;
+      updateCarousel();
+    }
+
+    let slideInterval = setInterval(nextSlide, 3000);
+
+    function resetInterval() {
+      clearInterval(slideInterval);
+      slideInterval = setInterval(nextSlide, 3000);
+    }
+
+    // Scenario Carousel Logic
+    let currentScen = 0;
+    const scenSlides = document.getElementById('scenario-slides');
+    const scenInds = document.getElementById('scen-indicators').children;
+    const totalScen = 3;
+
+    function updateScen() {
+      scenSlides.style.transform = `translateX(-${currentScen * 33.3333}%)`;
+      Array.from(scenInds).forEach((ind, i) => {
+        if (i === currentScen) {
+          ind.classList.remove('bg-slate-300');
+          ind.classList.add('bg-blue-600');
+        } else {
+          ind.classList.add('bg-slate-300');
+          ind.classList.remove('bg-blue-600');
+        }
+      });
+    }
+
+    function nextScenario() {
+      currentScen = (currentScen + 1) % totalScen;
+      updateScen();
+    }
+    
+    function prevScenario() {
+      currentScen = (currentScen - 1 + totalScen) % totalScen;
+      updateScen();
+    }
+    
+    Array.from(scenInds).forEach((ind, i) => {
+      ind.addEventListener('click', () => {
+        currentScen = i;
+        updateScen();
+      });
+    });
+  </script>
+</body>
+</html>

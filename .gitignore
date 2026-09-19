@@ -15,6 +15,10 @@ __pycache__/
 # OS generated files
 .DS_Store
 .DS_Store?
+/.streamlit/user_settings.json
+/.streamlit/user_settings.tmp
+/.streamlit/last_golden_report.json
+/.streamlit/last_golden_report.tmp
 ._*
 .Spotlight-V100
 .Trashes
@@ -26,3 +30,9 @@ Thumbs.db
 # but ignore large outputs if any. We'll leave data/ un-ignored for now, 
 # except maybe dynamic stream files.
 data/chat_stream.jsonl
+data/snapshot.json
+data/market_signal.db
+
+# Private take-home assignment prompt / specifications
+docs/AI_Engineer_Take_Home_Market_Signal_Bot.pdf
+*.pdf
