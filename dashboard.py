@@ -334,9 +334,36 @@ def render_control() -> None:
         store.reset()
         write_demo_stream()
         messages = load_messages(STREAM_FILE)
-        with st.spinner("Processing demo messages..."):
-            processed, errors = process_new_contexts(store, messages)
-        st.success(f"Processed {processed} contexts and stored {len(store.load_signals())} signals.")
+        
+        contexts = list(assemble_contexts(messages, st.session_state.runtime_context_window))
+        total_contexts = len(contexts)
+        
+        st.write("### Pipeline Progress")
+        progress_bar = st.progress(0, text="1. Extracting and splitting stream into context batches...")
+        log_container = st.empty()
+        
+        processed = 0
+        errors = []
+        for i, context in enumerate(contexts):
+            key = context_key(context)
+            if store.has_context(key):
+                continue
+                
+            log_container.info(f"⚙️ **Step 2:** Sending Batch {i+1}/{total_contexts} to LLM (Context ID: `{key[:8]}` | Message count: {len(context)})")
+            
+            try:
+                extracted = extract_signals(context, format_context_for_llm(context))
+                normalized, _, _ = run_normalization(extracted)
+                store.replace_context_signals(key, [item.msg_id for item in context], normalized)
+                processed += 1
+            except Exception as exc:
+                store.record_failure(key, str(exc))
+                errors.append(f"context {key}: {exc}")
+                
+            progress_bar.progress((i + 1) / total_contexts, text=f"Processed {i+1} of {total_contexts} context batches")
+            
+        log_container.success("✅ **Step 3:** LLM Extraction and Normalization sequence complete!")
+        st.success(f"Processed {processed} contexts and stored {len(store.load_signals())} signals. You can now view them in the Dashboard.")
         if errors:
             st.warning("Some contexts failed; inspect the Dashboard pipeline issues panel.")
     if demo_blocked:
