@@ -69,8 +69,13 @@ GOLDEN_FIELD_HELP = {
 
 
 def _ui_value(value):
-    """Pass through values; Streamlit handles None gracefully without Arrow mixed-type warnings."""
-    return value
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "✅ Pass" if value else "❌ Fail"
+    if isinstance(value, float):
+        return f"{value:g}"
+    return str(value)
 
 
 def _load_user_settings() -> None:
@@ -305,7 +310,7 @@ def render_control() -> None:
         else:
             st.error(f"HOLD — accuracy is below the configured threshold ({st.session_state.golden_min_accuracy:.0%}). Review failures before running the demo.")
         case_rows = [
-            {"Case": item["case_id"], "Chats": item["chat_count"], "Contexts": item["context_count"], "Passed": item["passed"], **item["checks"], "Error": item["error"] or ""}
+            {"Case": item["case_id"], "Chats": item["chat_count"], "Contexts": item["context_count"], "Passed": item["passed"], **{k: _ui_value(v) for k, v in item["checks"].items()}, "Error": item["error"] or ""}
             for item in report["results"]
         ]
         frame = pd.DataFrame(case_rows)
@@ -436,11 +441,11 @@ def render_dashboard() -> None:
     ]
     trend_config = {
         "Resource": st.column_config.TextColumn("Resource", help="Canonical resource entity name."),
-        "Supply volume": st.column_config.NumberColumn("Supply volume", help="Total aggregated supply volume."),
-        "Demand volume": st.column_config.NumberColumn("Demand volume", help="Total aggregated demand volume."),
-        "Median price": st.column_config.NumberColumn("Median price", help="Median price of compatible quotes."),
-        "P25": st.column_config.NumberColumn("P25", help="25th percentile price."),
-        "P75": st.column_config.NumberColumn("P75", help="75th percentile price."),
+        "Supply volume": st.column_config.TextColumn("Supply volume", help="Total aggregated supply volume."),
+        "Demand volume": st.column_config.TextColumn("Demand volume", help="Total aggregated demand volume."),
+        "Median price": st.column_config.TextColumn("Median price", help="Median price of compatible quotes."),
+        "P25": st.column_config.TextColumn("P25", help="25th percentile price."),
+        "P75": st.column_config.TextColumn("P75", help="75th percentile price."),
         "Samples": st.column_config.NumberColumn("Samples", help="Number of signals contributing to this snapshot."),
         "Independent offers": st.column_config.NumberColumn("Independent offers", help="Number of unique hashed offers (removes spam)."),
         "Confidence": st.column_config.TextColumn("Confidence", help="Average LLM confidence score for this resource."),
@@ -459,12 +464,12 @@ def render_dashboard() -> None:
             "Resource": signal.resource_entity.replace("_", " "),
             "Kind": signal.signal_kind.value,
             "Direction": signal.direction.value,
-            "Price": str(signal.raw_price_str or signal.price) if (signal.raw_price_str or signal.price) is not None else None,
-            "Volume": str(signal.raw_volume_str or signal.volume) if (signal.raw_volume_str or signal.volume) is not None else None,
+            "Price": _ui_value(signal.raw_price_str or signal.price),
+            "Volume": _ui_value(signal.raw_volume_str or signal.volume),
             "Availability": signal.availability.value,
             "Confidence": f"{signal.confidence_score:.0%}",
             "Evidence": ", ".join(signal.source_msg_ids),
-            "Explanation": signal.explanation,
+            "Explanation": _ui_value(signal.explanation),
         }
         for signal in reversed(signals)
     ]
@@ -503,9 +508,11 @@ st.markdown(
     h1 { margin-top: 0; margin-bottom: 0.25rem; }
     [data-testid="stAppViewContainer"] .main .block-container { padding-top: 2rem; }
     div[data-testid="stAlert"] { margin-top: 0; margin-bottom: 0.5rem; }
-    div[data-baseweb="tab-list"] { justify-content: flex-end; gap: 4px; border-bottom: 0; margin-bottom: -10px; }
-    button[data-baseweb="tab"] { font-size: 1.15rem; padding: 12px 24px; border-radius: 8px 8px 0 0; }
-    button[data-baseweb="tab"] p { font-size: 1.15rem; font-weight: 600; margin: 0; }
+    div[data-baseweb="tab-list"] { justify-content: flex-end; gap: 8px; border-bottom: none; }
+    div[data-baseweb="tab-highlight"] { display: none; }
+    button[data-baseweb="tab"] { font-size: 1.1rem; padding: 10px 20px; border-radius: 8px; border: 1px solid transparent; background: transparent; transition: all 0.2s; }
+    button[data-baseweb="tab"][aria-selected="true"] { background: rgba(37,99,235,0.08); border: 1px solid rgba(37,99,235,0.2); color: #2563eb; }
+    button[data-baseweb="tab"] p { font-size: 1.1rem; font-weight: 600; margin: 0; }
     </style>
     """,
     unsafe_allow_html=True,
