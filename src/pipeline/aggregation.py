@@ -44,9 +44,10 @@ def aggregate(signals: List[MarketSignal], now: datetime | None = None) -> List[
 
         volume_supply = pd.to_numeric(supply["volume"], errors="coerce").dropna()
         volume_demand = pd.to_numeric(demand["volume"], errors="coerce").dropna()
-        offer_ids = {value for value in market["offer_id"].dropna().tolist() if value}
+        offers = market[(market["signal_kind"] == "offer") & (market["direction"] == Direction.SUPPLY.value)]
+        offer_ids = {value for value in offers["offer_id"].dropna().tolist() if value}
         if not offer_ids:
-            offer_ids = {f"signal:{idx}" for idx in market.index}
+            offer_ids = {f"signal:{idx}" for idx in offers.index}
 
         availability = current["availability"].dropna().tolist()
         availability_state = "unknown"

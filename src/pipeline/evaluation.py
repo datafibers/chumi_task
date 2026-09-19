@@ -42,7 +42,7 @@ def _field_match(signal: MarketSignal, field: str, expected: Any) -> bool:
     return actual == expected
 
 
-def run_golden_suite(path: str = "data/golden_cases.jsonl") -> Dict[str, Any]:
+def run_golden_suite(path: str = "data/golden_cases.jsonl", inactivity_seconds: int | None = None) -> Dict[str, Any]:
     cases = _load_cases(path)
     input_rows = sum(len(case.get("messages", [])) for case in cases)
     results = []
@@ -52,7 +52,7 @@ def run_golden_suite(path: str = "data/golden_cases.jsonl") -> Dict[str, Any]:
 
     for case in cases:
         messages = [RawMessage.model_validate(item) for item in case["messages"]]
-        contexts = assemble_contexts(messages)
+        contexts = assemble_contexts(messages, inactivity_seconds=inactivity_seconds)
         signals: List[MarketSignal] = []
         error = None
         try:
@@ -107,5 +107,6 @@ def run_golden_suite(path: str = "data/golden_cases.jsonl") -> Dict[str, Any]:
         "passed_checks": passed_checks,
         "accuracy": round(passed_checks / total_checks, 3) if total_checks else 0.0,
         "elapsed_seconds": round(time.perf_counter() - started, 2),
+        "context_window_seconds": inactivity_seconds,
         "results": results,
     }

@@ -2,6 +2,8 @@
 
 一个用于演示“聊天数据流 → 市场信号抽取 → 聚合报表”的 Streamlit 应用。项目默认使用 OpenRouter 做结构化 LLM 抽取，也支持完全离线的 deterministic fake extractor。
 
+![Market Signal Dashboard](docs/screenshot.png)
+
 ## 1. 环境要求
 
 - Python 3.9+
@@ -23,11 +25,11 @@ export OPENROUTER_MODEL="google/gemini-2.5-flash"
 export OPENROUTER_FALLBACK_MODEL="google/gemini-2.5-pro"
 ```
 
-也可以启动 Streamlit 后，在 `Control` 面板中填写 API key、primary model 和 fallback model。API key 只写入当前 Streamlit 进程的环境，不会写入源代码或数据库。
+也可以启动 Streamlit 后，在 `Settings` 页面选择 Online (OpenRouter)，再填写 API key、primary model 和 fallback model。API key 只写入当前 Streamlit 进程和本机 git-ignored user settings，不会写入消息数据或数据库。
 
 点击 `Save configuration` 后，UI 设置会自动保存到本机的 `.streamlit/user_settings.json`，下次启动会自动恢复。该文件已加入 `.gitignore`，不会提交到 Git；它包含本机明文 API key，请只在个人开发环境使用。
 
-Control 面板预置了以下模型，也支持自定义 model slug：
+Settings 页面预置了以下模型，也支持自定义 model slug：
 
 - `google/gemini-3.8-flash`：最新 Flash，速度和复杂推理能力较强
 - `google/gemini-3.1-pro-preview`：高质量 reasoning，成本更高
@@ -59,7 +61,7 @@ streamlit run dashboard.py
 
 用于运行 golden regression tests 和 demo replay。如果最近一次 golden test 低于阈值，`Run demo` 会被禁用。
 
-## 4. 在 Control 中切换真实/离线模式
+## 4. 在 Settings 中切换真实/离线模式
 
 推荐只用一个启动命令：
 
@@ -67,12 +69,12 @@ streamlit run dashboard.py
 streamlit run dashboard.py
 ```
 
-启动后进入 `Control` 面板，在同一个配置表单中选择：
+启动后进入 `Settings` 页面，在 `Run mode` 中选择：
 
 - `Live OpenRouter mode` 开启：使用填写的 OpenRouter API key、primary model 和 fallback model
 - `Live OpenRouter mode` 关闭：不需要 API key，不调用网络，使用 deterministic extractor
 
-保存配置后，点击 `Run golden tests` 验证当前模式，再点击 `Run demo` 处理演示数据，最后返回 `Dashboard` 查看结果。这样不需要为了切换模式重新启动应用。
+保存配置后，进入 `Control` 点击 `Run golden tests` 验证当前模式，再点击 `Run demo` 处理演示数据，最后返回 `Dashboard` 查看结果。这样不需要为了切换模式重新启动应用。
 
 环境变量 `USE_FAKE_LLM` 仍然可以作为启动时的默认值，但不是必需的 UI 操作：
 
@@ -117,6 +119,7 @@ USE_FAKE_LLM=1 python -c "from src.pipeline.evaluation import run_golden_suite; 
 | `OPENROUTER_FALLBACK_MODEL` | `google/gemini-2.5-pro` | fallback model |
 | `USE_FAKE_LLM` | `0` | 使用离线 extractor |
 | `REPORT_REFRESH_SECONDS` | `5` | Dashboard 刷新间隔 |
+| `CONTEXT_WINDOW_SECONDS` | `120` | 无 reply 消息的 group-local context inactivity window |
 | `GOLDEN_MIN_ACCURACY` | `0.75` | 允许运行 demo 的最低准确率 |
 | `CHAT_SOURCE_FILE` | `data/chat_messages.jsonl` | 原始 fixture |
 | `CHAT_STREAM_FILE` | `data/chat_stream.jsonl` | 模拟实时 stream |
@@ -151,6 +154,6 @@ python mock_producer.py --reset --interval 0
 
 ## 10. 设计文档
 
+- [docs/PROJECT_GUIDE.html](docs/PROJECT_GUIDE.html) — 综合 HTML 图文说明
 - [docs/DESIGN_NOTES.md](docs/DESIGN_NOTES.md)
 - [docs/USE_CASES.md](docs/USE_CASES.md)
-- [docs/AI_Engineer_Take_Home_Market_Signal_Bot.pdf](docs/AI_Engineer_Take_Home_Market_Signal_Bot.pdf)

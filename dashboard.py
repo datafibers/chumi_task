@@ -265,7 +265,7 @@ def render_control() -> None:
         os.environ["OPENROUTER_FALLBACK_MODEL"] = st.session_state.runtime_fallback
         os.environ["USE_FAKE_LLM"] = "1" if st.session_state.runtime_fake else "0"
         with st.spinner("Running golden cases..."):
-            st.session_state.golden_report = run_golden_suite()
+            st.session_state.golden_report = run_golden_suite(inactivity_seconds=st.session_state.runtime_context_window)
             _save_golden_report(st.session_state.golden_report)
 
     report = st.session_state.golden_report
@@ -285,6 +285,8 @@ def render_control() -> None:
         cols[3].metric("Passed cases", report["passed_cases"], help="A case passes only when every expected field check passes.")
         cols[4].metric("Field accuracy", f"{report['accuracy']:.0%}", help="Passed field checks divided by total field checks.")
         cols[5].metric("Elapsed", f"{report['elapsed_seconds']:.1f}s", help="Time spent running the suite.")
+        if report.get("context_window_seconds") is not None:
+            st.caption(f"Context window used for this run: {report['context_window_seconds']} seconds. Reply chains remain intact regardless of this value.")
         if report["accuracy"] >= st.session_state.golden_min_accuracy:
             st.success(f"PASS — accuracy is within the configured tolerance (≥ {st.session_state.golden_min_accuracy:.0%}). Demo processing is enabled.")
         else:

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Market Signal Intelligence Bot · Project Guide</title>
+  <style>
+    :root { --ink:#172033; --muted:#5d6b82; --line:#dce4ef; --blue:#2563eb; --cyan:#0891b2; --green:#15803d; --amber:#b45309; --bg:#f5f8fc; --card:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .wrap { max-width:1180px; margin:auto; padding:34px 24px 70px; }
+    header { background:linear-gradient(135deg,#12213b,#1e4f91); color:white; border-radius:22px; padding:42px 46px; box-shadow:0 14px 38px #173b7025; }
+    header h1 { margin:0 0 8px; font-size:38px; letter-spacing:-.8px; }
+    header p { margin:0; max-width:800px; color:#dceaff; font-size:17px; }
+    .pill { display:inline-block; margin:18px 7px 0 0; padding:4px 11px; border:1px solid #ffffff44; border-radius:999px; color:#eff6ff; font-size:12px; }
+    nav { position:sticky; top:12px; z-index:2; margin:18px 0; padding:10px 14px; background:#ffffffdf; border:1px solid var(--line); border-radius:14px; backdrop-filter:blur(8px); }
+    nav a { color:var(--blue); text-decoration:none; margin-right:18px; font-size:13px; }
+    section { margin:34px 0; }
+    h2 { margin:0 0 12px; font-size:25px; }
+    h3 { margin:22px 0 8px; font-size:18px; }
+    .lead { color:var(--muted); max-width:900px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:15px; padding:18px; box-shadow:0 4px 15px #173b7009; }
+    .card strong { display:block; margin-bottom:4px; }
+    .flow { display:flex; flex-wrap:wrap; align-items:stretch; gap:10px; margin:18px 0; }
+    .flow .node { flex:1 1 145px; min-width:145px; background:white; border:1px solid #cbd8eb; border-radius:13px; padding:15px; text-align:center; }
+    .flow .node b { display:block; color:var(--blue); }
+    .arrow { align-self:center; color:#7890ad; font-size:23px; }
+    table { width:100%; border-collapse:collapse; background:white; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+    th,td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#edf4fc; color:#28466e; font-size:13px; }
+    tr:last-child td { border-bottom:0; }
+    code { background:#eef3f9; padding:2px 5px; border-radius:5px; color:#1e4779; }
+    pre { overflow:auto; background:#101827; color:#dbeafe; padding:17px; border-radius:12px; font-size:13px; }
+    .note { border-left:4px solid var(--cyan); background:#ecfeff; padding:12px 16px; border-radius:8px; }
+    .warn { border-left-color:var(--amber); background:#fff7ed; }
+    .ok { border-left-color:var(--green); background:#f0fdf4; }
+    footer { margin-top:45px; color:var(--muted); font-size:13px; text-align:center; }
+    @media (max-width:700px) { header { padding:28px 24px; } header h1 { font-size:29px; } nav { position:static; } .arrow { display:none; } }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Market Signal Intelligence Bot</h1>
+    <p>从嘈杂的群聊消息中提取可审计的市场信号，经过 context 组装、OpenRouter 结构化抽取、确定性规范化和聚合，最终在 Streamlit Dashboard 中展示。</p>
+    <span class="pill">JSONL replay</span><span class="pill">OpenRouter</span><span class="pill">SQLite</span><span class="pill">Streamlit</span><span class="pill">Golden regression</span>
+  </header>
+  <nav>
+    <a href="#overview">Overview</a><a href="#model">Data model</a><a href="#pipeline">Pipeline</a><a href="#context">Context</a><a href="#scenarios">Scenarios</a><a href="#report">Reports</a><a href="#run">Runbook</a>
+  </nav>
+
+  <section id="overview">
+    <h2>1. 设计目标与系统边界</h2>
+    <p class="lead">系统关注的是“市场信号”而不是普通聊天摘要：谁在供给/需求什么资源、价格和数量是什么、信息是否当前有效、是否已经形成交易承诺，以及每个结论由哪些原始消息支持。</p>
+    <div class="grid">
+      <div class="card"><strong>可审计</strong>每个 signal 保留 source message IDs、用户、群组、原始价格/数量和解释。</div>
+      <div class="card"><strong>可回放</strong>原始 JSONL append-only；模型或 prompt 改变后可以重新跑同一批数据。</div>
+      <div class="card"><strong>不确定性优先</strong>缺失单位、币种或资源时保留 unknown，不伪造精确值。</div>
+      <div class="card"><strong>模型可替换</strong>OpenRouter 只通过 provider adapter 接入，主模型和 fallback 可配置。</div>
+    </div>
+  </section>
+
+  <section id="pipeline">
+    <h2>2. Pipeline 总览</h2>
+    <div class="flow">
+      <div class="node"><b>Raw JSONL</b>chat_messages / stream</div><div class="arrow">→</div>
+      <div class="node"><b>Ingestion</b>schema validation<br>event ordering</div><div class="arrow">→</div>
+      <div class="node"><b>Context</b>reply chain<br>group window</div><div class="arrow">→</div>
+      <div class="node"><b>Extraction</b>OpenRouter JSON<br>or offline fake</div><div class="arrow">→</div>
+      <div class="node"><b>Normalization</b>aliases<br>dedup / revision</div><div class="arrow">→</div>
+      <div class="node"><b>SQLite</b>signals<br>provenance / failures</div><div class="arrow">→</div>
+      <div class="node"><b>Aggregation</b>supply/demand<br>price statistics</div><div class="arrow">→</div>
+      <div class="node"><b>Dashboard</b>snapshot<br>HTML report</div>
+    </div>
+    <div class="note ok"><b>关键分工：</b>LLM 负责语言理解；确定性代码负责 schema、归一化、去重、revision、统计和错误记录。</div>
+  </section>
+
+  <section id="model">
+    <h2>3. 数据结构</h2>
+    <h3>RawMessage · 原始消息</h3>
+    <table><tr><th>字段</th><th>含义</th></tr>
+      <tr><td><code>msg_id</code></td><td>平台消息唯一 ID，所有 provenance 的根。</td></tr>
+      <tr><td><code>user_id / group_id</code></td><td>发送者和群组边界。</td></tr>
+      <tr><td><code>timestamp / ingested_at</code></td><td>事件发生时间与系统接收时间。</td></tr>
+      <tr><td><code>text</code></td><td>原始聊天文本，不在 ingestion 阶段改写。</td></tr>
+      <tr><td><code>reply_to / forwarded_from</code></td><td>回复链和转发关系。</td></tr>
+    </table>
+    <h3>MarketSignal · 标准化市场信号</h3>
+    <div class="grid">
+      <div class="card"><strong>语义</strong><code>signal_kind</code>：offer / request / price_quote / availability / transaction；<code>direction</code>：supply / demand / unknown。</div>
+      <div class="card"><strong>时间与交易</strong><code>temporal_status</code>：current / historical / future / unknown；<code>transaction_status</code>：inquiry / negotiation / commitment / completed 等。</div>
+      <div class="card"><strong>数量与价格</strong><code>price</code>、<code>raw_price_str</code>、currency、unit、<code>price_type</code>；<code>volume</code> 和 unit 保留原始语义。</div>
+      <div class="card"><strong>证据</strong><code>source_msg_ids</code>、users、groups、confidence、explanation、offer_id、revision。</div>
+    </div>
+    <h3>AggregatedTrend · Dashboard 聚合行</h3>
+    <p class="lead">每一行对应一个规范化资源，分别统计 supply/demand volume、signal 数、median/P25/P75、sample count、independent offers、平均置信度和 availability。没有足够数据的字段在 UI 中显示为空白。</p>
+  </section>
+
+  <section id="context">
+    <h2>4. Context 如何切分</h2>
+    <p class="lead">Context 是理解一组市场信号所需的 conversation unit，不是单用户 unit。一个 context 可以包含多个用户，也可以生成多个 resource-level signals。</p>
+    <table><tr><th>优先级</th><th>规则</th><th>例子</th></tr>
+      <tr><td>1 · Reply thread</td><td>从 root 出发收集完整 reply tree；reply chain 优先于时间窗口。</td><td><code>Need → I have → Deal</code> = 1 context</td></tr>
+      <tr><td>2 · Group window</td><td>没有 usable reply 时按 <code>group_id</code> 和 inactivity window 合并。</td><td>默认 120 秒，同群相近消息可合并</td></tr>
+      <tr><td>3 · No author-only merge</td><td>不能只因为同一用户或时间接近就合并无关话题。</td><td>Claude 和 A100 可能仍是不同语义</td></tr>
+      <tr><td>4 · Multi-resource</td><td>一个 conversational context 可以包含多个资源；拆分在 normalization/aggregation 阶段完成。</td><td>一条 bundle offer 产生多个 signals</td></tr>
+      <tr><td>5 · Size guardrails</td><td>生产环境增加 max messages、max tokens、max thread duration。</td><td>超限在安全边界切分并保留 provenance</td></tr>
+    </table>
+    <div class="note warn"><b>评估指标要分开看：</b>Chats tested 是原始消息行数；Contexts sent 是组装后发送给模型的批次数；二者不是同一个数量。</div>
+    <h3>4.1 Combined message window 的准确率/效率平衡</h3>
+    <p class="lead">窗口变大并不一定让效果更好。更长的窗口能提供更多上下文，减少省略实体和代词造成的误判，但也会把无关话题、不同资源和不同交易混进同一个 prompt，增加 token 成本、延迟和 false association。</p>
+    <table><tr><th>窗口</th><th>可能收益</th><th>主要风险</th><th>适用情况</th></tr>
+      <tr><td>短，例如 30-60s</td><td>prompt 小、延迟低、话题纯度高。</td><td>容易拆散 follow-up、correction 和慢回复。</td><td>高频群、话题切换快、消息带明确实体。</td></tr>
+      <tr><td>中，例如 120-300s</td><td>通常能覆盖短交易对话和补充说明。</td><td>活跃群中可能混入第二个话题。</td><td>当前 prototype 的默认起点。</td></tr>
+      <tr><td>长，例如 600s+</td><td>有利于低频群、延迟回复和较长谈判。</td><td>token/费用上升，模型更容易错误关联不同报价。</td><td>低频、主题集中的群，且应配合 topic/token guardrail。</td></tr>
+    </table>
+    <div class="grid" style="margin-top:14px">
+      <div class="card"><strong>效果指标</strong>signal precision/recall、entity inheritance、correction accuracy、false merge rate、false split rate、transaction-state accuracy。</div>
+      <div class="card"><strong>效率指标</strong>contexts 数、平均 chats/context、input tokens、P50/P95 latency、API cost、fallback rate、parse failure rate。</div>
+      <div class="card"><strong>业务指标</strong>重复 offer 数、错误价格关联、错误成交状态、snapshot 稳定性，以及分析人员需要人工修正的次数。</div>
+    </div>
+    <h3>4.2 如何找到合理窗口</h3>
+    <p>应使用更真实、带 conversation/thread label 的消息样本做 window sweep，而不是凭感觉选一个数字。推荐固定模型、prompt 和 normalization 版本，对多个候选窗口重复跑同一数据：</p>
+    <pre>candidate_windows = [30, 60, 120, 300, 600]
+
+for window in candidate_windows:
+    contexts = assemble_contexts(messages, inactivity_seconds=window)
+    evaluate(
+        context_precision,
+        context_recall,
+        signal_field_accuracy,
+        false_merge_rate,
+        false_split_rate,
+        input_tokens,
+        latency,
+        api_cost,
+    )</pre>
+    <p>选择 Pareto frontier，而不是只追求单一准确率：如果 300 秒只比 120 秒多 0.5% field accuracy，却增加 40% tokens 和 25% false merge，120 秒更合理。不同 group 可以采用不同窗口，例如高频交易群 60 秒、低频资源群 300 秒。</p>
+    <div class="note"><b>重要：</b>明确的 <code>reply_to</code> 不应受 inactivity window 限制。窗口只处理没有 reply metadata 的消息；reply tree 始终优先。</div>
+  </section>
+
+  <section id="scenarios">
+    <h2>5. 特殊 scenario 处理</h2>
+    <table><tr><th>Scenario</th><th>处理策略</th><th>Golden 验证点</th></tr>
+      <tr><td>Correction</td><td>后续 correction 覆盖旧值；SQLite 根据 source IDs 删除/替换旧 signal。</td><td>最终价格保留，旧价格不进入 snapshot。</td></tr>
+      <tr><td>Demand bound</td><td>保留 raw phrase，并将 <code>below 4</code> 归类为 upper_bound。</td><td>request + demand + price_type。</td></tr>
+      <tr><td>Bundle offer</td><td>同一 context 允许返回多个 resource signals。</td><td>AWS/GCP 都被识别。</td></tr>
+      <tr><td>Historical</td><td>标记 historical/hearsay，不混入当前可比报价。</td><td>temporal_status。</td></tr>
+      <tr><td>Commitment</td><td>reply chain 继承资源；明确 “Deal, PM me” 视为 commitment，不等于 completed。</td><td>resource 与 transaction_status 可由 context 中不同 signals 共同满足。</td></tr>
+      <tr><td>Availability</td><td>没有明确价格也可以生成 availability signal；不虚构库存量。</td><td>constrained / unavailable。</td></tr>
+      <tr><td>Irrelevant</td><td>无市场动作的事实或闲聊应 abstain。</td><td>no_actionable_signal。</td></tr>
+    </table>
+  </section>
+
+  <section id="report">
+    <h2>6. UI 报告字段解释</h2>
+    <h3>Dashboard · Market snapshot</h3>
+    <table><tr><th>列</th><th>含义</th></tr>
+      <tr><td>Resource</td><td>规范化资源名，例如 OpenAI Credits、A100 GPU。</td></tr>
+      <tr><td>Supply volume / Demand volume</td><td>分别汇总供给和需求数量；单位不兼容时不强行相加。</td></tr>
+      <tr><td>Median price / P25 / P75</td><td>在币种、单位、price semantics 可比时计算；缺数据为空白。</td></tr>
+      <tr><td>Samples</td><td>参与该资源聚合的信号数。</td></tr>
+      <tr><td>Independent offers</td><td>按 offer/source 独立性去重后的供给数量。</td></tr>
+      <tr><td>Confidence</td><td>信号 confidence 的平均值，不代表统计置信区间。</td></tr>
+      <tr><td>Availability</td><td>available、unavailable、constrained 或 unknown。</td></tr>
+    </table>
+    <h3>Extracted signals</h3>
+    <p class="lead">逐条显示 LLM 输出经过 provenance 和 normalization 后的结果。<b>Evidence</b> 是支持该结论的消息 ID；<b>Explanation</b> 是短解释；没有价格或数量时显示空白。</p>
+    <h3>Golden result</h3>
+    <table><tr><th>指标</th><th>含义</th></tr>
+      <tr><td>Cases</td><td>标注场景数量。</td></tr>
+      <tr><td>Chats tested</td><td>所有 golden case 的原始聊天消息数。</td></tr>
+      <tr><td>Contexts sent</td><td>context assembly 后实际发送给模型的批次数。</td></tr>
+      <tr><td>Passed cases</td><td>一个 case 的所有字段检查都通过才算通过。</td></tr>
+      <tr><td>Field accuracy</td><td>通过字段断言数 / 总字段断言数。</td></tr>
+    </table>
+  </section>
+
+  <section id="run">
+    <h2>7. 运行与配置</h2>
+    <pre>python3 -m pip install -r requirements.txt
+python3 -m streamlit run dashboard.py</pre>
+    <div class="grid">
+      <div class="card"><strong>Settings</strong>选择 Offline 或 Online (OpenRouter)，配置 primary/fallback、API key、刷新频率、combined message window。</div>
+      <div class="card"><strong>Control</strong>运行 golden test；通过后运行 demo。Golden 结果会保存到本地 git-ignored 文件。</div>
+      <div class="card"><strong>Dashboard</strong>查看 snapshot、trends、signals、evidence 和 pipeline errors。</div>
+    </div>
+    <pre># offline deterministic demo
+USE_FAKE_LLM=1 python3 -m streamlit run dashboard.py
+
+# simulated chat stream
+python3 mock_producer.py --reset --interval 1</pre>
+    <div class="note">API key 和 UI 配置保存在 <code>.streamlit/user_settings.json</code>，已经加入 <code>.gitignore</code>。不要把该文件提交到 Git。</div>
+  </section>
+
+  <footer>Generated project guide · Source of truth: docs/DESIGN_NOTES.md, dashboard.py, and src/pipeline/</footer>
+</div>
+</body>
+</html>
