@@ -394,7 +394,19 @@ def render_dashboard() -> None:
         }
         for trend in trends
     ]
-    st.dataframe(pd.DataFrame(trend_rows), use_container_width=True, hide_index=True)
+    trend_config = {
+        "Resource": st.column_config.TextColumn("Resource", help="Canonical resource entity name."),
+        "Supply volume": st.column_config.TextColumn("Supply volume", help="Total aggregated supply volume."),
+        "Demand volume": st.column_config.TextColumn("Demand volume", help="Total aggregated demand volume."),
+        "Median price": st.column_config.TextColumn("Median price", help="Median price of compatible quotes."),
+        "P25": st.column_config.TextColumn("P25", help="25th percentile price."),
+        "P75": st.column_config.TextColumn("P75", help="75th percentile price."),
+        "Samples": st.column_config.NumberColumn("Samples", help="Number of signals contributing to this snapshot."),
+        "Independent offers": st.column_config.NumberColumn("Independent offers", help="Number of unique hashed offers (removes spam)."),
+        "Confidence": st.column_config.TextColumn("Confidence", help="Average LLM confidence score for this resource."),
+        "Availability": st.column_config.TextColumn("Availability", help="Current general availability state."),
+    }
+    st.dataframe(pd.DataFrame(trend_rows), use_container_width=True, hide_index=True, column_config=trend_config)
 
     chart_rows = [{"resource": trend.resource_entity, "median_price": trend.median_price} for trend in trends if trend.median_price is not None]
     if chart_rows:
@@ -419,15 +431,15 @@ def render_dashboard() -> None:
     if signal_rows:
         signal_frame = pd.DataFrame(signal_rows)
         signal_config = {
-            "Resource": st.column_config.TextColumn("Resource", width="medium"),
-            "Kind": st.column_config.TextColumn("Kind", width="small"),
-            "Direction": st.column_config.TextColumn("Direction", width="small"),
-            "Price": st.column_config.TextColumn("Price", width="small"),
-            "Volume": st.column_config.TextColumn("Volume", width="small"),
-            "Availability": st.column_config.TextColumn("Availability", width="small"),
-            "Confidence": st.column_config.TextColumn("Confidence", width="small"),
-            "Evidence": st.column_config.TextColumn("Evidence", width="medium"),
-            "Explanation": st.column_config.TextColumn("Explanation", width="large"),
+            "Resource": st.column_config.TextColumn("Resource", width="medium", help="Canonical resource entity name."),
+            "Kind": st.column_config.TextColumn("Kind", width="small", help="Type of signal (e.g., offer, request)."),
+            "Direction": st.column_config.TextColumn("Direction", width="small", help="Supply or demand direction."),
+            "Price": st.column_config.TextColumn("Price", width="small", help="Raw price string or parsed numeric value."),
+            "Volume": st.column_config.TextColumn("Volume", width="small", help="Raw volume string or parsed numeric value."),
+            "Availability": st.column_config.TextColumn("Availability", width="small", help="Explicit availability state (e.g. out of stock)."),
+            "Confidence": st.column_config.TextColumn("Confidence", width="small", help="LLM extraction confidence score."),
+            "Evidence": st.column_config.TextColumn("Evidence", width="medium", help="Message IDs used as evidence for this signal."),
+            "Explanation": st.column_config.TextColumn("Explanation", width="large", help="LLM's reasoning and rationale for this extraction."),
         }
         st.dataframe(signal_frame, use_container_width=True, hide_index=True, column_config=signal_config, height=520)
     else:
