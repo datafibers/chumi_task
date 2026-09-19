@@ -2,7 +2,7 @@
 
 A Streamlit application demonstrating a data pipeline: "Chat Stream → Market Signal Extraction → Aggregated Reporting". The project defaults to using OpenRouter for structured LLM extraction, but also supports a fully offline deterministic fake extractor.
 
-📖 **[Read the comprehensive Architecture & Design Guide here](https://datafibers.github.io/chumi_task/docs/)**
+📖 **[Read the comprehensive Architecture & Design Guide here](https://datafibers.github.io/chumi_task/)**
 
 ![Market Signal Dashboard](docs/screenshot.png)
 
@@ -157,7 +157,7 @@ Alternatively, just click `Run demo` in the Control panel, which automatically r
 
 ## 10. Design Documents
 
-- 🌐 **[Live Project Guide (GitHub Pages)](https://datafibers.github.io/chumi_task/docs/)**
+- 🌐 **[Live Project Guide (GitHub Pages)](https://datafibers.github.io/chumi_task/)**
 - [docs/index.html](docs/index.html) — Comprehensive HTML guide with diagrams and exact chat examples
 - [docs/DESIGN_NOTES.md](docs/DESIGN_NOTES.md) — Architecture and design decisions
 - [docs/USE_CASES.md](docs/USE_CASES.md) — Adversarial scenarios and evaluation metrics
