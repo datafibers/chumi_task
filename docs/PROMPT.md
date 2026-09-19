@@ -71,36 +71,44 @@ message_id=msg_013 time=2024-01-15T10:01:00Z group=golden user=alice: Typo, mean
 The system successfully resolves complex conversational challenges purely through prompt directives and schema definitions. Here is how the rules map to the adversarial cases defined in `USE_CASES.md`:
 
 ### Scenario 1: Self-Correction
+* **Chat Example:** `"Selling Claude API, 4.0 per unit."` followed by `"Typo, meant 3.8."`
 * **Rule:** `- A correction supersedes the earlier value. Do not emit the earlier value as a current signal.`
 * **Effect:** The LLM actively ignores the initial typo (e.g., `4.0`) and only outputs the corrected value (`3.8`), preventing double-counting or false market depth.
 
 ### Scenario 2 & 10: Missing Units & Hallucination Prevention
+* **Chat Example:** `"Looking for 200 at 3.8"` (no resource or currency specified).
 * **Rule:** `- Never invent currency, units, prices, resources, or transaction completion.`
 * **Rule:** `- Use null or unknown when evidence is missing.`
 * **Effect:** If a user says "Looking for 200 at 3.8" without mentioning the resource, the LLM outputs `unknown` instead of fabricating a resource.
 
 ### Scenario 2: Preserving Domain Slang (e.g., "8-card", "500k")
+* **Chat Example:** `"Got 8-card A100s, spot."` or `"Still looking for 500k OpenAI."`
 * **Rule:** `- Preserve raw price/quantity strings and include the message IDs supporting each signal.`
 * **Effect:** The LLM is forced to populate `raw_volume_str` and `raw_resource_text`, ensuring that industry slang is stored for downstream programmatic normalizers and audits, even if it fails to parse the exact float volume.
 
 ### Scenario 4: Historical & Chatter
+* **Chat Example:** `"Remember when OpenAI was going for 2.0? Crazy times."`
 * **Schema Field:** `"temporal_status": "current|historical|future|unknown"`
 * **Effect:** By forcing the model to categorize the timeline, messages like "Remember when OpenAI was 2.0?" are correctly flagged as `historical` and ignored by downstream price aggregators.
 
 ### Scenario 5: Bundled Offers
+* **Chat Example:** `"Got 2 AWS $100k accounts at 30% off, and throwing in a GCP $50k account for 25% off."`
 * **Rule:** `- One context can produce multiple signals; several messages can produce one signal.`
 * **Effect:** A single message offering "AWS accounts at 30% off and GCP accounts for 25% off" will output two distinct signal objects in the JSON array, decoupling the bundled resources.
 
 ### Scenario 6: Multi-party Threads & "Deal, PM me"
+* **Chat Example:** User A: `"Need $120 OpenAI accounts."` -> User B: `"I have 5. Standard rate?"` -> User A: `"Deal, PM me."`
 * **Rule:** `- In a reply chain, inherit the resource, quantity, and transaction context from the parent messages when the reply is elliptical...`
 * **Rule:** `- A statement such as "Deal, PM me" is commitment unless completion is explicit.`
 * **Effect:** When processing a threaded conversation, the LLM automatically carries the state forward. If a user replies "Deal", it extracts a signal with `"transaction_status": "commitment"`.
 
 ### Scenario 8: Alias vs Unknown Resources
+* **Chat Example:** `"Sonnet quota available."` or `"New model X access, 20 slots."`
 * **Schema Field:** `"resource_entity": "canonical resource name or normalized unknown text"`
 * **Effect:** The LLM will attempt to normalize terms (e.g., mapping "Sonnet" to "Claude_API"), but if it encounters an entirely new resource, it follows the format to emit `unknown:model_x`, alerting downstream systems.
 
 ### Scenario 9: Irrelevant Numeric Chatter
+* **Chat Example:** `"The model had 2 million downloads last month."`
 * **Schema Field:** `"signal_kind": "offer|request|price_quote|availability|transaction"`
 * **Effect:** For messages like "The model had 2 million downloads", the LLM realizes the context does not match any of the strict `signal_kind` enumerations and will decline to emit a market signal, reducing false positives.
 
