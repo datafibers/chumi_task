@@ -69,8 +69,8 @@ GOLDEN_FIELD_HELP = {
 
 
 def _ui_value(value):
-    """Render missing values as an empty cell instead of the word None."""
-    return "" if value is None else value
+    """Pass through values; Streamlit handles None gracefully without Arrow mixed-type warnings."""
+    return value
 
 
 def _load_user_settings() -> None:
@@ -295,7 +295,7 @@ def render_control() -> None:
             {"Case": item["case_id"], "Chats": item["chat_count"], "Contexts": item["context_count"], "Passed": item["passed"], **item["checks"], "Error": item["error"] or ""}
             for item in report["results"]
         ]
-        frame = pd.DataFrame(case_rows).fillna("")
+        frame = pd.DataFrame(case_rows)
         column_config = {
             name: st.column_config.TextColumn(name, help=GOLDEN_FIELD_HELP.get(name, "Golden field check result."))
             for name in frame.columns
@@ -502,7 +502,7 @@ header_title, header_nav = st.columns([1.7, 1.3])
 with header_title:
     st.title("Market Signal Intelligence Bot")
 with header_nav:
-    page = st.radio("", ["📊 Dashboard", "⚙️ Settings", "🧪 Control"], key="active_page", horizontal=True, label_visibility="collapsed")
+    page = st.radio("Navigation", ["📊 Dashboard", "⚙️ Settings", "🧪 Control"], key="active_page", horizontal=True, label_visibility="collapsed")
 page_query = {"📊 Dashboard": "dashboard", "⚙️ Settings": "settings", "🧪 Control": "control"}[page]
 if hasattr(st, "query_params") and st.query_params.get("page") != page_query:
     st.query_params["page"] = page_query
