@@ -260,16 +260,29 @@ def render_control() -> None:
     st.divider()
     st.subheader("Golden regression test")
     st.write("Runs the current model and prompt against the hand-labeled cases in `data/golden_cases.jsonl`.")
-    if st.button("Run golden tests", type="secondary"):
-        os.environ["OPENROUTER_MODEL"] = st.session_state.runtime_model
-        os.environ["OPENROUTER_FALLBACK_MODEL"] = st.session_state.runtime_fallback
-        os.environ["USE_FAKE_LLM"] = "1" if st.session_state.runtime_fake else "0"
-        with st.spinner("Running golden cases..."):
-            st.session_state.golden_report = run_golden_suite(inactivity_seconds=st.session_state.runtime_context_window)
-            _save_golden_report(st.session_state.golden_report)
+    if "show_last_run" not in st.session_state:
+        st.session_state.show_last_run = False
+
+    col1, col2, _ = st.columns([2, 2, 8])
+    with col1:
+        if st.button("Run golden tests", type="secondary", use_container_width=True):
+            os.environ["OPENROUTER_MODEL"] = st.session_state.runtime_model
+            os.environ["OPENROUTER_FALLBACK_MODEL"] = st.session_state.runtime_fallback
+            os.environ["USE_FAKE_LLM"] = "1" if st.session_state.runtime_fake else "0"
+            with st.spinner("Running golden cases..."):
+                st.session_state.golden_report = run_golden_suite(inactivity_seconds=st.session_state.runtime_context_window)
+                _save_golden_report(st.session_state.golden_report)
+            st.session_state.show_last_run = True
+
+    with col2:
+        if st.session_state.golden_report:
+            label = "Hide last run" if st.session_state.show_last_run else "Show last run"
+            if st.button(label, use_container_width=True):
+                st.session_state.show_last_run = not st.session_state.show_last_run
+                st.rerun()
 
     report = st.session_state.golden_report
-    if report:
+    if report and st.session_state.show_last_run:
         # Backward compatibility for reports saved before chat/context counts
         # were added to the evaluation result.
         if "input_rows" not in report:
