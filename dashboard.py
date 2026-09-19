@@ -297,7 +297,7 @@ def render_control() -> None:
         ]
         frame = pd.DataFrame(case_rows)
         column_config = {
-            name: st.column_config.TextColumn(name, help=GOLDEN_FIELD_HELP.get(name, "Golden field check result."))
+            name: st.column_config.Column(name, help=GOLDEN_FIELD_HELP.get(name, "Golden field check result."))
             for name in frame.columns
             if name not in {"Passed"}
         }
@@ -423,11 +423,11 @@ def render_dashboard() -> None:
     ]
     trend_config = {
         "Resource": st.column_config.TextColumn("Resource", help="Canonical resource entity name."),
-        "Supply volume": st.column_config.TextColumn("Supply volume", help="Total aggregated supply volume."),
-        "Demand volume": st.column_config.TextColumn("Demand volume", help="Total aggregated demand volume."),
-        "Median price": st.column_config.TextColumn("Median price", help="Median price of compatible quotes."),
-        "P25": st.column_config.TextColumn("P25", help="25th percentile price."),
-        "P75": st.column_config.TextColumn("P75", help="75th percentile price."),
+        "Supply volume": st.column_config.NumberColumn("Supply volume", help="Total aggregated supply volume."),
+        "Demand volume": st.column_config.NumberColumn("Demand volume", help="Total aggregated demand volume."),
+        "Median price": st.column_config.NumberColumn("Median price", help="Median price of compatible quotes."),
+        "P25": st.column_config.NumberColumn("P25", help="25th percentile price."),
+        "P75": st.column_config.NumberColumn("P75", help="75th percentile price."),
         "Samples": st.column_config.NumberColumn("Samples", help="Number of signals contributing to this snapshot."),
         "Independent offers": st.column_config.NumberColumn("Independent offers", help="Number of unique hashed offers (removes spam)."),
         "Confidence": st.column_config.TextColumn("Confidence", help="Average LLM confidence score for this resource."),
@@ -446,8 +446,8 @@ def render_dashboard() -> None:
             "Resource": signal.resource_entity.replace("_", " "),
             "Kind": signal.signal_kind.value,
             "Direction": signal.direction.value,
-            "Price": _ui_value(signal.raw_price_str or signal.price),
-            "Volume": _ui_value(signal.raw_volume_str or signal.volume),
+            "Price": str(signal.raw_price_str or signal.price) if (signal.raw_price_str or signal.price) is not None else None,
+            "Volume": str(signal.raw_volume_str or signal.volume) if (signal.raw_volume_str or signal.volume) is not None else None,
             "Availability": signal.availability.value,
             "Confidence": f"{signal.confidence_score:.0%}",
             "Evidence": ", ".join(signal.source_msg_ids),
