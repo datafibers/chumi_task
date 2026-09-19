@@ -177,70 +177,134 @@
         <p class="text-slate-500 max-w-2xl mx-auto">The pipeline is designed to conquer the reality of informal trading chats: typos, slang, spam, and fragmented thoughts.</p>
       </div>
 
-      <div class="grid lg:grid-cols-2 gap-8">
+      <!-- Scenarios Carousel Wrapper -->
+      <div class="relative overflow-hidden w-full group" id="scenario-wrapper">
+        <div class="flex transition-transform duration-700 ease-in-out w-[300%]" id="scenario-slides">
+          
+          <!-- SCREEN 1 (Cases 1-4) -->
+          <div class="w-1/3 px-4">
+            <div class="grid lg:grid-cols-2 gap-8">
+              <!-- Case 1 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">1: Self-Correction</h3>
+                  <p class="text-sm text-slate-500">Users often correct typos in follow-ups. Context assembly merges them so the LLM extracts only the final value.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">alice:</span> Selling Claude API, 4.0/unit.</div><div class="chat-msg"><span class="chat-user">alice:</span> Typo sorry, meant 3.8.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Extracts <code class="text-green-700 bg-green-100 px-1 rounded">sell</code> for <code class="text-green-700 bg-green-100 px-1 rounded">Claude_API</code> at <code class="text-green-700 bg-green-100 px-1 rounded">3.8</code>.</div>
+              </div>
+              <!-- Case 2 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">2: Missing Units & Slang</h3>
+                  <p class="text-sm text-slate-500">Informal markets use slang (e.g., "8-card", "below 4"). Raw strings are preserved when precise parsing fails.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">carol:</span> Got 8-card A100s, spot.</div><div class="chat-msg"><span class="chat-user">bob:</span> Looking for 500k OpenAI, below 4.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Maps "A100s" to <code class="text-green-700 bg-green-100 px-1 rounded">A100_GPU</code>. "below 4" is stored in <code class="text-green-700 bg-green-100 px-1 rounded">raw_price_str</code>.</div>
+              </div>
+              <!-- Case 3 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">3: Broker Spam Deduplication</h3>
+                  <p class="text-sm text-slate-500">Brokers spam identical messages. A content hash suppresses duplicates across groups.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg text-slate-400"><span class="chat-user">broker_x:</span> Discounted MJ subs... <i class="text-xs">(grp_A)</i></div><div class="chat-msg"><span class="chat-user">broker_y:</span> Discounted MJ subs... <i class="text-xs">(grp_B)</i></div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Only the first message generates a signal. Hash match drops the rest.</div>
+              </div>
+              <!-- Case 4 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">4: Historical & Chatter</h3>
+                  <p class="text-sm text-slate-500">Complaints or reminiscing about past prices should not affect the current market depth median.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">dave:</span> Remember when OpenAI was 2.0? Crazy.</div><div class="chat-msg"><span class="chat-user">frank:</span> AWS quotas are so annoying lately.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Intent marked <code class="text-green-700 bg-green-100 px-1 rounded">historical</code> and <code class="text-green-700 bg-green-100 px-1 rounded">irrelevant</code>. Excluded from aggregation.</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- SCREEN 2 (Cases 5-8) -->
+          <div class="w-1/3 px-4">
+            <div class="grid lg:grid-cols-2 gap-8">
+              <!-- Case 5 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">5: Bundled Offers</h3>
+                  <p class="text-sm text-slate-500">A single message contains multiple resources, distinct quantities, and different discount semantics.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">grace:</span> Got AWS $100k accounts at 30% off, and throwing in a GCP $50k account for 25% off.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Generates two distinct signals (<code class="text-green-700 bg-green-100 px-1 rounded">AWS_Compute</code> and <code class="text-green-700 bg-green-100 px-1 rounded">GCP_Compute</code>).</div>
+              </div>
+              <!-- Case 6 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">6: Multi-party Threads</h3>
+                  <p class="text-sm text-slate-500">Replies form a thread where the final commitment relies on the root resource message.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">henry:</span> Need $120 OpenAI stock.</div><div class="chat-msg pl-4 border-l-2 border-blue-200 mt-2"><span class="chat-user">ivan:</span> I have 5. Standard rate?</div><div class="chat-msg pl-8 border-l-2 border-indigo-200 mt-2"><span class="chat-user">henry:</span> Deal, PM me.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Extracts <code class="text-green-700 bg-green-100 px-1 rounded">transaction_completed</code> at price <code class="text-green-700 bg-green-100 px-1 rounded">120</code>.</div>
+              </div>
+              <!-- Case 7 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">7: Contradictory Quotes</h3>
+                  <p class="text-sm text-slate-500">Users disagreeing on current rates. Both are extracted; median aggregation naturally handles the spread.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">user_j:</span> Claude API is 3.8 today.</div><div class="chat-msg"><span class="chat-user">user_k:</span> No, I can get it at 4.2.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Retains both prices. Dispersion and range (3.8 - 4.2) are shown in UI.</div>
+              </div>
+              <!-- Case 8 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">8: Alias vs Unknown</h3>
+                  <p class="text-sm text-slate-500">Known slang is mapped to a canonical ontology. Totally new resources are flagged as unknown but tracked.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">user_l:</span> Sonnet quota available.</div><div class="chat-msg"><span class="chat-user">user_n:</span> New model X access, 20 slots.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Maps "Sonnet" to canonical. Stores "model X" as <code class="text-green-700 bg-green-100 px-1 rounded">unknown:model_x</code>.</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- SCREEN 3 (Cases 9-10) -->
+          <div class="w-1/3 px-4">
+            <div class="grid lg:grid-cols-2 gap-8">
+              <!-- Case 9 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">9: Irrelevant Numbers</h3>
+                  <p class="text-sm text-slate-500">Not every number is a price or volume. The LLM must discern intent to avoid hallucinating false offers.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">user_o:</span> The model had 2 million downloads last month.</div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Ignored. <code class="text-green-700 bg-green-100 px-1 rounded">no_actionable_signal</code> returned.</div>
+              </div>
+              <!-- Case 10 -->
+              <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                <div class="p-6 border-b border-slate-100">
+                  <h3 class="text-lg font-bold text-slate-900 mb-2">10: Incomplete Reply Chain</h3>
+                  <p class="text-sm text-slate-500">When the parent message is missing from the stream, the AI extracts what it can but lowers confidence.</p>
+                </div>
+                <div class="bg-slate-50 p-6 flex-1 mono text-sm"><div class="chat-msg"><span class="chat-user">user_q:</span> Yes, I can take 200 at 3.8. <i>(reply to unknown)</i></div></div>
+                <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800"><strong>Result:</strong> Extracts price and volume but leaves resource as <code class="text-green-700 bg-green-100 px-1 rounded">unknown</code>.</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Arrows -->
+        <button onclick="prevScenario()" class="absolute top-1/2 -translate-y-1/2 left-0 md:-left-4 bg-white/90 hover:bg-blue-600 hover:text-white text-slate-600 border border-slate-200 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors z-10">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+        <button onclick="nextScenario()" class="absolute top-1/2 -translate-y-1/2 right-0 md:-right-4 bg-white/90 hover:bg-blue-600 hover:text-white text-slate-600 border border-slate-200 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors z-10">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
         
-        <!-- Case A -->
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
-          <div class="p-6 border-b border-slate-100">
-            <h3 class="text-lg font-bold text-slate-900 mb-2">Scenario A: Self-Correction</h3>
-            <p class="text-sm text-slate-500">Users often make typos and correct themselves. Time-window context assembly groups these together so the LLM extracts only the final corrected value.</p>
-          </div>
-          <div class="bg-slate-50 p-6 flex-1 mono">
-            <div class="chat-msg"><span class="chat-user">alice:</span> Selling Claude API credits, 4.0 per unit, have about 500k.</div>
-            <div class="chat-msg"><span class="chat-user">alice:</span> Typo sorry, meant 3.8 per unit not 4.0</div>
-          </div>
-          <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800">
-            <strong>Result:</strong> Extracts single <code class="text-green-700 bg-green-100 px-1 rounded">sell</code> signal for <code class="text-green-700 bg-green-100 px-1 rounded">Claude_API</code> at price <code class="text-green-700 bg-green-100 px-1 rounded">3.8</code>.
-          </div>
+        <!-- Indicators -->
+        <div class="flex justify-center mt-6 gap-2" id="scen-indicators">
+          <div class="w-3 h-3 rounded-full bg-blue-600 cursor-pointer"></div>
+          <div class="w-3 h-3 rounded-full bg-slate-300 cursor-pointer"></div>
+          <div class="w-3 h-3 rounded-full bg-slate-300 cursor-pointer"></div>
         </div>
-
-        <!-- Case B -->
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
-          <div class="p-6 border-b border-slate-100">
-            <h3 class="text-lg font-bold text-slate-900 mb-2">Scenario B: Slang & Missing Units</h3>
-            <p class="text-sm text-slate-500">Informal markets use slang (e.g., "8-card", "below 4"). Normalization maps aliases, while the schema retains raw strings when precise parsing fails.</p>
-          </div>
-          <div class="bg-slate-50 p-6 flex-1 mono">
-            <div class="chat-msg"><span class="chat-user">carol:</span> Got 8-card A100s, spot, anyone interested?</div>
-            <div class="chat-msg"><span class="chat-user">bob:</span> Still looking for 500k OpenAI credits, below 4 if possible.</div>
-          </div>
-          <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800">
-            <strong>Result:</strong> Maps "A100s" to <code class="text-green-700 bg-green-100 px-1 rounded">A100_GPU</code>. "below 4" is stored in <code class="text-green-700 bg-green-100 px-1 rounded">raw_price_str</code>.
-          </div>
-        </div>
-
-        <!-- Case C -->
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
-          <div class="p-6 border-b border-slate-100">
-            <h3 class="text-lg font-bold text-slate-900 mb-2">Scenario C: Broker Spam</h3>
-            <p class="text-sm text-slate-500">Brokers spam identical messages across groups. The normalization layer calculates a content hash and suppresses duplicates within a 2-hour window.</p>
-          </div>
-          <div class="bg-slate-50 p-6 flex-1 mono">
-            <div class="chat-msg text-slate-400"><span class="chat-user">broker_x:</span> Discounted Midjourney... <i class="text-xs">(grp_ai_trading)</i></div>
-            <div class="chat-msg text-slate-400"><span class="chat-user">broker_x:</span> Discounted Midjourney... <i class="text-xs">(grp_secondary)</i></div>
-            <div class="chat-msg"><span class="chat-user">broker_y:</span> Discounted Midjourney... <i class="text-xs">(grp_resellers)</i></div>
-          </div>
-          <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800">
-            <strong>Result:</strong> Only the first message generates a market signal. Subsequent identical hashes are dropped.
-          </div>
-        </div>
-
-        <!-- Case D -->
-        <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
-          <div class="p-6 border-b border-slate-100">
-            <h3 class="text-lg font-bold text-slate-900 mb-2">Scenario D: Multi-party Threads</h3>
-            <p class="text-sm text-slate-500">Replies form a thread where the final commitment relies on the root resource. Reply-chain assembly handles this seamlessly in one LLM call.</p>
-          </div>
-          <div class="bg-slate-50 p-6 flex-1 mono">
-            <div class="chat-msg"><span class="chat-user">henry:</span> Need $120 OpenAI accounts, anyone have stock?</div>
-            <div class="chat-msg pl-4 border-l-2 border-blue-200 mt-2"><span class="chat-user">ivan:</span> I have 5. Standard rate?</div>
-            <div class="chat-msg pl-8 border-l-2 border-indigo-200 mt-2"><span class="chat-user">henry:</span> Deal, PM me.</div>
-          </div>
-          <div class="bg-green-50/50 p-4 border-t border-green-100 text-sm text-green-800">
-            <strong>Result:</strong> Extracts a <code class="text-green-700 bg-green-100 px-1 rounded">transaction_completed</code> signal for <code class="text-green-700 bg-green-100 px-1 rounded">OpenAI_Credits</code> at <code class="text-green-700 bg-green-100 px-1 rounded">120</code>.
-          </div>
-        </div>
-
       </div>
     </section>
 
@@ -330,6 +394,42 @@
       clearInterval(slideInterval);
       slideInterval = setInterval(nextSlide, 3000);
     }
+
+    // Scenario Carousel Logic
+    let currentScen = 0;
+    const scenSlides = document.getElementById('scenario-slides');
+    const scenInds = document.getElementById('scen-indicators').children;
+    const totalScen = 3;
+
+    function updateScen() {
+      scenSlides.style.transform = `translateX(-${currentScen * 33.3333}%)`;
+      Array.from(scenInds).forEach((ind, i) => {
+        if (i === currentScen) {
+          ind.classList.remove('bg-slate-300');
+          ind.classList.add('bg-blue-600');
+        } else {
+          ind.classList.add('bg-slate-300');
+          ind.classList.remove('bg-blue-600');
+        }
+      });
+    }
+
+    function nextScenario() {
+      currentScen = (currentScen + 1) % totalScen;
+      updateScen();
+    }
+    
+    function prevScenario() {
+      currentScen = (currentScen - 1 + totalScen) % totalScen;
+      updateScen();
+    }
+    
+    Array.from(scenInds).forEach((ind, i) => {
+      ind.addEventListener('click', () => {
+        currentScen = i;
+        updateScen();
+      });
+    });
   </script>
 </body>
 </html>
