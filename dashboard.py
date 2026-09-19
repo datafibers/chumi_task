@@ -511,23 +511,12 @@ if st.session_state.runtime_fake:
     st.warning("🧪 OFFLINE DEMO MODE · Deterministic fake extractor · No OpenRouter calls")
 else:
     st.info(f"☁️ LIVE MODEL · Primary: `{st.session_state.runtime_model}` · Fallback: `{st.session_state.runtime_fallback}`")
-header_title, header_nav = st.columns([1.7, 1.3])
-with header_title:
-    st.title("Market Signal Intelligence Bot")
-with header_nav:
-    page = st.radio("Navigation", ["📊 Dashboard", "⚙️ Settings", "🧪 Control"], key="active_page", horizontal=True, label_visibility="collapsed")
-page_query = {"📊 Dashboard": "dashboard", "⚙️ Settings": "settings", "🧪 Control": "control"}[page]
-if hasattr(st, "query_params") and st.query_params.get("page") != page_query:
-    st.query_params["page"] = page_query
-if page.endswith("Settings"):
-    page = "Settings"
-elif page.endswith("Control"):
-    page = "Control"
-else:
-    page = "Dashboard"
-if page == "Settings":
-    render_settings()
-elif page == "Control":
-    render_control()
-else:
+st.title("Market Signal Intelligence Bot")
+tab_dash, tab_ctrl, tab_set = st.tabs(["📊 Dashboard", "🧪 Control", "⚙️ Settings"])
+
+with tab_dash:
     render_dashboard()
+with tab_ctrl:
+    render_control()
+with tab_set:
+    render_settings()
