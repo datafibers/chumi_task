@@ -42,6 +42,7 @@
           <a href="#architecture" class="hover:text-blue-600 transition">Architecture</a>
           <a href="#models" class="hover:text-blue-600 transition">Data Models</a>
           <a href="#scenarios" class="hover:text-blue-600 transition">Adversarial Scenarios</a>
+          <a href="#evaluation" class="hover:text-blue-600 transition">Calibration</a>
           <a href="https://github.com/datafibers/chumi_task" target="_blank" class="text-blue-600 hover:text-blue-700 transition flex items-center gap-1">
             GitHub <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
           </a>
@@ -242,6 +243,47 @@
 
       </div>
     </section>
+
+    <!-- Calibration Section -->
+    <section id="evaluation" class="bg-slate-900 text-white p-10 rounded-3xl border border-slate-800 shadow-xl mt-12 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 -mr-20 -mt-20"></div>
+      <div class="relative z-10">
+        <h2 class="text-3xl font-bold mb-6 border-b border-slate-700 pb-4">Golden Dataset & LLM Calibration</h2>
+        <div class="grid md:grid-cols-2 gap-10 items-center">
+          <div>
+            <p class="text-slate-300 text-lg mb-6 leading-relaxed">
+              Because LLMs are non-deterministic, modifying prompts or switching models (e.g., from Gemini Flash to Pro) can cause silent regressions. We prevent this by enforcing a <strong>Golden Regression Suite</strong>.
+            </p>
+            <ul class="space-y-4 text-slate-300">
+              <li class="flex items-start">
+                <svg class="w-6 h-6 text-blue-400 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span><strong>Hand-labeled Golden Cases:</strong> Contains highly adversarial chats (slang, corrections, bundles) mapped to exact expected JSON outputs.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-6 h-6 text-blue-400 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                <span><strong>Calibration Pre-flight:</strong> The Streamlit UI forces a <code>Run Golden Tests</code> check before starting the live stream. If the LLM extraction accuracy falls below 75%, the pipeline refuses to run.</span>
+              </li>
+              <li class="flex items-start">
+                <svg class="w-6 h-6 text-blue-400 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span><strong>Cost-Aware Routing:</strong> During live runs, if the primary model's confidence drops below threshold on complex chats, the pipeline automatically routes the context to a heavier fallback model (Pro).</span>
+              </li>
+            </ul>
+          </div>
+          <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 font-mono text-sm text-slate-300 shadow-inner">
+            <div class="text-green-400 mb-2">$ python -m eval_suite</div>
+            <div class="mb-1">Loading golden dataset... [OK]</div>
+            <div class="mb-1">Testing Context 1 (Self-Correction)... <span class="text-green-400">[PASS]</span></div>
+            <div class="mb-1">Testing Context 2 (Bundle Offer)... <span class="text-green-400">[PASS]</span></div>
+            <div class="mb-1">Testing Context 3 (Broker Spam)... <span class="text-green-400">[PASS]</span></div>
+            <div class="mb-4">Testing Context 4 (Slang Inference)... <span class="text-red-400">[FAIL]</span></div>
+            <div class="text-red-400 mb-2">Error: Expected unit 'gpu', got 'unknown'</div>
+            <div class="border-t border-slate-600 pt-2 mt-2">
+              Accuracy: <span class="text-amber-400">75% (3/4)</span><br>
+              Status: <span class="text-green-400">Threshold met, safe to deploy.</span>
+            </div>
+          </div>
+        </div>
+      </div>
   </main>
 
   <footer class="bg-white border-t border-slate-200 py-10 text-center">
