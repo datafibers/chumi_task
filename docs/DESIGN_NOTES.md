@@ -229,8 +229,28 @@ Chat text is untrusted input and must be delimited when sent to the LLM. User ID
 - Larger contexts improve interpretation but add latency and token cost; bounded windows and caching are appropriate.
 - Availability opinions can be useful but should not be mixed with concrete inventory volume.
 
-## 13. Prioritization
+## 13. Future Architecture Shifts for Production
+
+While the current prototype handles adversarial cases efficiently and demonstrates high evaluation rigor, transitioning to a high-concurrency production environment (e.g., thousands of messages per minute across Telegram/Discord) requires several architectural shifts:
+
+### 13.1. Decoupling UI from Ingestion & Processing
+- **Current:** The Streamlit `dashboard.py` manages ingestion polling, context assembly, LLM API calls, normalization, and SQLite writes.
+- **Production Shift:** The frontend must be strictly read-only. We need a separate background worker infrastructure (e.g., Celery, Faust, or Kafka consumers) to handle the data pipeline asynchronously. Streamlit (or a React SPA) would then only query the pre-aggregated materialized views in PostgreSQL/SQLite, ensuring the dashboard remains ultra-fast regardless of ingestion spikes.
+
+### 13.2. Asynchronous LLM Concurrency
+- **Current:** `call_openrouter` operates synchronously in a blocking loop (`for context in contexts:`), which incurs severe latency when processing multiple independent conversations simultaneously.
+- **Production Shift:** Switch to Python's `asyncio` and `AsyncOpenAI`. By fanning out multiple context extractions concurrently (while respecting API rate limits), pipeline latency drops from $O(N)$ to $O(1)$, constrained only by the slowest single LLM request (~2 seconds).
+
+### 13.3. Dynamic Ontology via Vector Search
+- **Current:** Resource normalization relies on a hardcoded string `ALIAS_MAP` in `normalization.py` (e.g., mapping `"a100"` to `"A100_GPU"`).
+- **Production Shift:** Informal markets invent new slang and models weekly (e.g., "OpenAI o1"). The static alias map should be replaced with a Vector Database (e.g., Qdrant or Pinecone). When an unknown resource string appears, the system performs a semantic similarity search against the ontology. If similarity is high, it auto-maps; if low, it alerts human operators to label the new entity.
+
+### 13.4. Stateful Sliding Windows
+- **Current:** Context assembly relies on a fixed group-level inactivity window (e.g., 2 minutes). If a continuous negotiation accidentally crosses the hard time boundary without explicit replies, it is split into two disjoint contexts.
+- **Production Shift:** Implement an overlapping **sliding window** or a stateful session store (e.g., Redis). This ensures the LLM retains historical conversational state for active users across batch boundaries, significantly improving extraction recall for long-running price negotiations.
+
+## 14. Prioritization
 
 The required design centers on the message contract, signal semantics, context rules, normalization, provenance, aggregation, evaluation, and the Streamlit snapshot contract. A replayed local stream is sufficient to demonstrate the design.
 
-Optional extensions include live Telegram ingestion, multilingual extraction, ontology search, anomaly detection, cost-aware model routing, custom frontend work, and Kafka/Flink integration. They should be added only after the core signal model and evaluation are stable.
+Optional extensions include live Telegram ingestion, multilingual extraction, anomaly detection, custom frontend work, and the production shifts mentioned above. They should be added only after the core signal model and evaluation are stable.
