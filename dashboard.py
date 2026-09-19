@@ -313,7 +313,7 @@ def render_control() -> None:
             {"Case": item["case_id"], "Chats": item["chat_count"], "Contexts": item["context_count"], "Passed": item["passed"], **{k: _ui_value(v) for k, v in item["checks"].items()}, "Error": item["error"] or ""}
             for item in report["results"]
         ]
-        frame = pd.DataFrame(case_rows)
+        frame = pd.DataFrame(case_rows).fillna("")
         column_config = {
             name: st.column_config.Column(name, help=GOLDEN_FIELD_HELP.get(name, "Golden field check result."))
             for name in frame.columns
