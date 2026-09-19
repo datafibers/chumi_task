@@ -503,6 +503,9 @@ st.markdown(
     h1 { margin-top: 0; margin-bottom: 0.25rem; }
     [data-testid="stAppViewContainer"] .main .block-container { padding-top: 2rem; }
     div[data-testid="stAlert"] { margin-top: 0; margin-bottom: 0.5rem; }
+    div[data-baseweb="tab-list"] { justify-content: flex-end; gap: 4px; border-bottom: 0; margin-bottom: -10px; }
+    button[data-baseweb="tab"] { font-size: 1.15rem; padding: 12px 24px; border-radius: 8px 8px 0 0; }
+    button[data-baseweb="tab"] p { font-size: 1.15rem; font-weight: 600; margin: 0; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -511,7 +514,14 @@ if st.session_state.runtime_fake:
     st.warning("🧪 OFFLINE DEMO MODE · Deterministic fake extractor · No OpenRouter calls")
 else:
     st.info(f"☁️ LIVE MODEL · Primary: `{st.session_state.runtime_model}` · Fallback: `{st.session_state.runtime_fallback}`")
-st.title("Market Signal Intelligence Bot")
+st.markdown("""
+<div style="display: flex; align-items: center; gap: 14px; margin-bottom: 1rem;">
+    <div style="min-width: 48px; width: 48px; height: 48px; background-color: #dbeafe; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #2563eb; box-shadow: 0 2px 4px rgba(37,99,235,0.1);">
+        <svg style="width: 28px; height: 28px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+    </div>
+    <h1 style="margin: 0; padding: 0;">Market Signal Intelligence Bot</h1>
+</div>
+""", unsafe_allow_html=True)
 tab_dash, tab_ctrl, tab_set = st.tabs(["📊 Dashboard", "🧪 Control", "⚙️ Settings"])
 
 with tab_dash:
