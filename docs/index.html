@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Market Signal Intelligence Bot · Project Guide</title>
+  <style>
+    :root { --ink:#172033; --muted:#5d6b82; --line:#dce4ef; --blue:#2563eb; --cyan:#0891b2; --green:#15803d; --amber:#b45309; --bg:#f5f8fc; --card:#fff; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    .wrap { max-width:1180px; margin:auto; padding:34px 24px 70px; }
+    header { background:linear-gradient(135deg,#12213b,#1e4f91); color:white; border-radius:22px; padding:42px 46px; box-shadow:0 14px 38px #173b7025; }
+    header h1 { margin:0 0 8px; font-size:38px; letter-spacing:-.8px; }
+    header p { margin:0; max-width:800px; color:#dceaff; font-size:17px; }
+    .hero-image { display:block; width:100%; max-width:1100px; margin:30px auto; border-radius:18px; box-shadow:0 14px 38px #173b7015; border:1px solid var(--line); }
+    .pill { display:inline-block; margin:18px 7px 0 0; padding:4px 11px; border:1px solid #ffffff44; border-radius:999px; color:#eff6ff; font-size:12px; }
+    nav { position:sticky; top:12px; z-index:2; margin:18px 0; padding:10px 14px; background:#ffffffdf; border:1px solid var(--line); border-radius:14px; backdrop-filter:blur(8px); }
+    nav a { color:var(--blue); text-decoration:none; margin-right:18px; font-size:13px; font-weight:500; }
+    section { margin:44px 0; }
+    h2 { margin:0 0 16px; font-size:26px; font-weight:600; letter-spacing:-0.5px; border-bottom:1px solid var(--line); padding-bottom:8px; }
+    h3 { margin:24px 0 10px; font-size:18px; font-weight:600; color:#1e3a8a; }
+    .lead { color:var(--muted); max-width:900px; font-size:16px; margin-bottom:20px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:15px; padding:20px; box-shadow:0 4px 15px #173b7009; transition:transform 0.2s; }
+    .card:hover { transform:translateY(-2px); box-shadow:0 8px 25px #173b7015; }
+    .card strong { display:block; margin-bottom:8px; font-size:16px; color:#1e40af; }
+    .flow { display:flex; flex-wrap:wrap; align-items:stretch; gap:12px; margin:24px 0; }
+    .flow .node { flex:1 1 145px; min-width:145px; background:white; border:1px solid #cbd8eb; border-radius:13px; padding:15px; text-align:center; box-shadow:0 2px 8px #173b7009; }
+    .flow .node b { display:block; color:var(--blue); margin-bottom:4px; font-size:15px; }
+    .arrow { align-self:center; color:#7890ad; font-size:23px; }
+    table { width:100%; border-collapse:collapse; background:white; border:1px solid var(--line); border-radius:12px; overflow:hidden; margin:16px 0; box-shadow:0 2px 8px #173b7005; }
+    th,td { padding:12px 16px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { background:#edf4fc; color:#1e3a8a; font-size:14px; font-weight:600; }
+    tr:last-child td { border-bottom:0; }
+    code { background:#eef3f9; padding:3px 6px; border-radius:5px; color:#1e4779; font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:13px; }
+    pre { overflow:auto; background:#0f172a; color:#e2e8f0; padding:20px; border-radius:12px; font-size:14px; box-shadow:inset 0 2px 8px #00000020; font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; line-height:1.5; }
+    .note { border-left:4px solid var(--cyan); background:#ecfeff; padding:14px 18px; border-radius:8px; margin:20px 0; color:#164e63; }
+    .warn { border-left-color:var(--amber); background:#fff7ed; color:#9a3412; }
+    .ok { border-left-color:var(--green); background:#f0fdf4; color:#166534; }
+    .chat-box { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; margin-top:12px; font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:13px; color:#334155; }
+    .chat-msg { margin-bottom:8px; }
+    .chat-msg:last-child { margin-bottom:0; }
+    .chat-user { font-weight:600; color:#475569; display:inline-block; width:80px; }
+    footer { margin-top:60px; color:var(--muted); font-size:14px; text-align:center; padding-top:20px; border-top:1px solid var(--line); }
+    @media (max-width:768px) { header { padding:32px 24px; } header h1 { font-size:30px; } nav { position:static; display:flex; flex-wrap:wrap; gap:10px; } .arrow { display:none; } .flow .node { flex-basis:100%; } }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Market Signal Intelligence Bot</h1>
+    <p>Extracting auditable market signals from noisy chat streams through context assembly, OpenRouter structured extraction, deterministic normalization, and aggregation—visualized in a real-time Streamlit Dashboard.</p>
+    <div>
+      <span class="pill">JSONL Replay</span>
+      <span class="pill">OpenRouter LLM</span>
+      <span class="pill">SQLite</span>
+      <span class="pill">Streamlit</span>
+      <span class="pill">Pandas DataFrames</span>
+    </div>
+  </header>
+  
+  <img src="screenshot.png" alt="Streamlit Dashboard Snapshot" class="hero-image">
+
+  <nav>
+    <a href="#overview">Overview</a>
+    <a href="#pipeline">Architecture Pipeline</a>
+    <a href="#model">Data Models</a>
+    <a href="#context">Context Assembly</a>
+    <a href="#scenarios">Scenarios & Examples</a>
+    <a href="#report">UI Reports</a>
+  </nav>
+
+  <section id="overview">
+    <h2>1. Design Goals & System Boundaries</h2>
+    <p class="lead">This system focuses on extracting <strong>market signals</strong> rather than generic chat summaries: identifying who is supplying/demanding what resource, prices, volumes, transaction commitments, and maintaining a strict provenance trail back to the source messages.</p>
+    <div class="grid">
+      <div class="card"><strong>Auditable</strong>Every signal retains source message IDs, user IDs, original raw price/volume strings, and an LLM-generated explanation.</div>
+      <div class="card"><strong>Replayable</strong>The original data is an append-only JSONL stream. The pipeline can be fully re-run deterministically over the same data.</div>
+      <div class="card"><strong>Uncertainty-Aware</strong>If units, currencies, or resource types are missing, the system preserves the unknown state and lowers confidence rather than hallucinating precise values.</div>
+      <div class="card"><strong>Model Agnostic</strong>Integrates via standard OpenAI-compatible SDKs (e.g., OpenRouter), allowing seamless switching between Gemini, Claude, and GPT models.</div>
+    </div>
+  </section>
+
+  <section id="pipeline">
+    <h2>2. Pipeline Overview</h2>
+    <div class="flow">
+      <div class="node"><b>Ingestion</b>JSONL Stream<br>Event Ordering</div><div class="arrow">→</div>
+      <div class="node"><b>Context Assembly</b>Reply Chains<br>Time Windows</div><div class="arrow">→</div>
+      <div class="node"><b>Extraction</b>OpenRouter LLM<br>(Flash / Pro)</div><div class="arrow">→</div>
+      <div class="node"><b>Normalization</b>Alias Mapping<br>Hash Deduplication</div><div class="arrow">→</div>
+      <div class="node"><b>Aggregation</b>Supply/Demand<br>Median Prices</div><div class="arrow">→</div>
+      <div class="node"><b>Dashboard</b>Streamlit UI<br>Live Refresh</div>
+    </div>
+    <div class="note ok"><b>Division of Labor:</b> The LLM is exclusively responsible for semantic understanding (intent, implicit references). Deterministic Python code handles schema validation, alias normalization, deduplication, state overwrites, and statistical aggregation.</div>
+  </section>
+
+  <section id="model">
+    <h2>3. Data Structures</h2>
+    <h3>RawMessage · The Input</h3>
+    <table>
+      <tr><th>Field</th><th>Description</th></tr>
+      <tr><td><code>msg_id</code></td><td>Unique identifier, serves as the root of all provenance.</td></tr>
+      <tr><td><code>user_id / group_id</code></td><td>Sender and channel boundaries.</td></tr>
+      <tr><td><code>timestamp</code></td><td>Event occurrence time.</td></tr>
+      <tr><td><code>text</code></td><td>Raw chat text (never altered during ingestion).</td></tr>
+      <tr><td><code>reply_to</code></td><td>Used to construct explicit thread chains.</td></tr>
+    </table>
+    
+    <h3>MarketSignal · The Output</h3>
+    <div class="grid">
+      <div class="card"><strong>Semantics</strong><code>intent</code>: buy / sell / inquiry / observation_past / irrelevant / transaction_completed.</div>
+      <div class="card"><strong>Price & Volume</strong><code>price</code> / <code>volume</code> as floats. <code>raw_price_str</code> / <code>raw_volume_str</code> preserve the original ambiguous strings (e.g., "30% off").</div>
+      <div class="card"><strong>Evidence</strong><code>source_msg_ids</code>, <code>confidence_score</code> (0.0 to 1.0), and <code>explanation</code>.</div>
+    </div>
+  </section>
+
+  <section id="context">
+    <h2>4. Context Assembly Strategies</h2>
+    <p class="lead">Context is the conversational unit required to understand a market signal. Instead of sending messages one by one (missing context) or all at once (high token cost, hallucination risk), messages are grouped dynamically.</p>
+    <table>
+      <tr><th>Strategy</th><th>Rule</th><th>Result</th></tr>
+      <tr><td>1. Reply Thread</td><td>Trace explicit <code>reply_to</code> links to build a full thread (oldest to newest).</td><td>Captures multi-party negotiation accurately.</td></tr>
+      <tr><td>2. Time Window</td><td>Group messages from the same user and group within a 5-minute inactivity window.</td><td>Captures self-corrections and split sentences.</td></tr>
+      <tr><td>3. Standalone</td><td>Messages with no replies and outside the time window.</td><td>Processed individually.</td></tr>
+    </table>
+  </section>
+
+  <section id="scenarios">
+    <h2>5. Adversarial Scenarios & Exact Chat Examples</h2>
+    <p class="lead">The pipeline is designed to handle messy, informal chat data. Below are the key scenarios handled and the exact chat logs representing them.</p>
+    
+    <h3>Scenario A: Self-Correction</h3>
+    <p>Users often make typos and correct themselves in a subsequent message. Time-window context assembly groups these together so the LLM extracts only the final corrected value.</p>
+    <div class="chat-box">
+      <div class="chat-msg"><span class="chat-user">alice:</span> Selling Claude API credits, 4.0 per unit, have about 500k.</div>
+      <div class="chat-msg"><span class="chat-user">alice:</span> Typo sorry, meant 3.8 per unit not 4.0</div>
+    </div>
+    <p><strong>Result:</strong> Extracts a single <code>sell</code> signal for <code>Claude_API</code> at price <code>3.8</code>.</p>
+
+    <h3>Scenario B: Missing Units & Slang</h3>
+    <p>Informal markets use slang (e.g., "8-card", "below 4"). The normalization layer maps aliases to canonical entities, while the schema retains raw strings when parsing fails.</p>
+    <div class="chat-box">
+      <div class="chat-msg"><span class="chat-user">carol:</span> Got 8-card A100s, spot, anyone interested?</div>
+      <div class="chat-msg"><span class="chat-user">bob:</span> Still looking for 500k OpenAI credits, below 4 if possible.</div>
+    </div>
+    <p><strong>Result:</strong> "A100s" maps to <code>A100_GPU</code>. "below 4" is stored in <code>raw_price_str</code>.</p>
+
+    <h3>Scenario C: Broker Spam (Deduplication)</h3>
+    <p>Brokers often spam the exact same message across multiple channels. The normalization layer calculates a content hash and suppresses duplicates within a time window.</p>
+    <div class="chat-box">
+      <div class="chat-msg"><span class="chat-user">broker_x:</span> Discounted Midjourney annual subs, $150 each, limited stock. <i>(grp_ai_trading)</i></div>
+      <div class="chat-msg"><span class="chat-user">broker_x:</span> Discounted Midjourney annual subs, $150 each, limited stock. <i>(grp_secondary)</i></div>
+      <div class="chat-msg"><span class="chat-user">broker_y:</span> Discounted Midjourney annual subs, $150 each, limited stock. <i>(grp_resellers)</i></div>
+    </div>
+    <p><strong>Result:</strong> Only the first message generates a market signal. Subsequent identical hashes are suppressed.</p>
+
+    <h3>Scenario D: Historical Chatter & Complaints</h3>
+    <p>Complaints about quotas or reminiscing about past prices should not affect current market depth or median price calculations.</p>
+    <div class="chat-box">
+      <div class="chat-msg"><span class="chat-user">dave:</span> Remember when OpenAI credits were going for 2.0? Crazy times lol.</div>
+      <div class="chat-msg"><span class="chat-user">frank:</span> AWS quotas are so annoying this week honestly.</div>
+    </div>
+    <p><strong>Result:</strong> Intent classified as <code>observation_past</code> and <code>irrelevant</code>. Ignored during aggregation.</p>
+
+    <h3>Scenario E: Bundled Offers</h3>
+    <p>A single message containing multiple distinct resources and prices. The schema enforces a <code>List[MarketSignal]</code> output to capture all entities.</p>
+    <div class="chat-box">
+      <div class="chat-msg"><span class="chat-user">grace:</span> Got 2 AWS $100k accounts at 30% off, and throwing in a GCP $50k account for 25% off.</div>
+    </div>
+    <p><strong>Result:</strong> Generates two signals: one for <code>AWS_Compute</code> and one for <code>GCP_Compute</code>.</p>
+
+    <h3>Scenario F: Multi-party Transaction Threads</h3>
+    <p>Replies form a thread where the final commitment relies on the resource mentioned at the root of the thread. Reply-chain assembly handles this seamlessly.</p>
+    <div class="chat-box">
+      <div class="chat-msg"><span class="chat-user">henry:</span> Need $120 OpenAI accounts, anyone have stock?</div>
+      <div class="chat-msg"><span class="chat-user">ivan:</span> I have 5. Standard rate? <i>(replying to henry)</i></div>
+      <div class="chat-msg"><span class="chat-user">henry:</span> Deal, PM me. <i>(replying to ivan)</i></div>
+    </div>
+    <p><strong>Result:</strong> Extracts a <code>transaction_completed</code> signal for <code>OpenAI_Credits</code> at price <code>120</code> with volume <code>5</code>.</p>
+  </section>
+
+  <section id="report">
+    <h2>6. UI Reports & Aggregation</h2>
+    
+    <h3>Market Depth (Aggregation Layer)</h3>
+    <p>Prices in informal markets often contain extreme outliers (e.g., misquotes). We use <strong>confidence-weighted median prices</strong> rather than arithmetic means to ensure robustness.</p>
+    <table>
+      <tr><th>Metric</th><th>Calculation Method</th></tr>
+      <tr><td>Median Price</td><td>Calculated from active <code>buy</code> and <code>sell</code> signals. Heavily weights high-confidence signals.</td></tr>
+      <tr><td>Price Range</td><td>Min and Max prices within the active signal window.</td></tr>
+      <tr><td>Independent Signals</td><td>Total number of unique signals contributing to the resource trend.</td></tr>
+    </table>
+
+    <h3>Extracted Signals Feed</h3>
+    <p>The raw signal feed displays the LLM's direct output, including the original strings (<code>raw_price_str</code>), the confidence score, the AI's explanation, and the exact source message IDs for full auditability.</p>
+  </section>
+
+  <footer>
+    Market Signal Intelligence Bot · Architecture & Design Guide<br>
+    Built with Python, Streamlit, Pandas, and OpenRouter (Gemini / Claude / GPT)
+  </footer>
+</div>
+</body>
+</html>
