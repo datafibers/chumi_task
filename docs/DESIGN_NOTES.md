@@ -110,16 +110,25 @@ A fake or recorded extractor is supported for deterministic evaluation and repor
 
 ## 5. Context Resolution
 
+Context is a conversation unit, not a single-user unit. One context may contain several users and may produce multiple resource-level signals.
+
 Context is resolved with explicit precedence:
 
-1. If `reply_to` is available, follow the reply chain and include the minimum relevant ancestors.
-2. Otherwise, use the same group/channel and a bounded time window.
-3. Add recent messages from the same author only when needed to resolve a correction or omitted entity.
-4. Do not merge unrelated conversations merely because the author is the same.
+1. **Reply thread first.** Build the complete reply tree from the root message, including all descendants that have a valid `reply_to`. A three-message chain such as `Need -> I have -> Deal` is one context, even when multiple users participate.
+2. **Group-local time window second.** Messages without a usable reply are grouped by `group_id` and an inactivity window. The prototype default is 120 seconds, configurable from Settings as `Combined message window`.
+3. **No author-only merge.** The same user or nearby timestamps are not sufficient to merge unrelated topics.
+4. **Keep multi-resource context when evidence is conversationally connected.** Do not split a context early just because it mentions several resources; one LLM call may produce multiple signals, which are separated later by normalization and aggregation.
+5. **Bound context size.** Production runs should enforce `max_messages_per_context`, `max_context_tokens`, and `max_thread_duration`. If a limit is reached, split at a safe boundary and preserve provenance; do not silently drop messages.
 
-For the simulated stream, a context is flushed after two minutes of inactivity in the same group, or earlier when a reply thread is closed. A late correction creates a new revision and supersedes the prior signal rather than creating a second live offer.
+For the simulated stream, the baseline is:
 
-Each context records its boundary, included message IDs, and `context_confidence`. An incomplete reply chain lowers confidence.
+```text
+reply chain > group_id + inactivity window (120s) > context size guardrails
+```
+
+A late correction creates a new revision and supersedes the prior signal rather than creating a second live offer. Different groups are never merged by time alone. A reply chain with missing ancestors is retained when possible and lowers `context_confidence`.
+
+Each context records its boundary reason, included message IDs, participating users/groups, `context_confidence`, and the model input text. Evaluation reports both raw chat rows and assembled contexts so the number of model calls is explicit.
 
 ## 6. Extraction Contract
 

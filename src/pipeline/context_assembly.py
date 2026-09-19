@@ -1,108 +1,99 @@
-"""
-Stage 2: Context Assembly
-Groups related messages into conversation contexts before sending to the LLM.
+"""Build bounded contexts from reply threads and group-local activity."""
 
-Two strategies:
-  1. reply_to chain: follow explicit reply links to build a thread.
-  2. time_window: group same user_id messages within TIME_WINDOW_SECONDS.
-"""
-from typing import List, Dict
+from __future__ import annotations
+
 from collections import defaultdict
-from src.models import RawMessage
-from datetime import datetime, timezone
+from datetime import timedelta
+from typing import Dict, List
 
-TIME_WINDOW_SECONDS = 300  # 5 minutes
+from src.models import RawMessage
+
+
+CONTEXT_INACTIVITY_SECONDS = 120
 
 
 def build_reply_index(messages: List[RawMessage]) -> Dict[str, RawMessage]:
-    """Index messages by msg_id for O(1) reply chain lookup."""
-    return {m.msg_id: m for m in messages}
+    return {message.msg_id: message for message in messages}
 
 
-def resolve_thread(msg: RawMessage, index: Dict[str, RawMessage]) -> List[RawMessage]:
-    """Follow reply_to chain upward and return ordered thread (oldest first)."""
-    thread = []
-    current = msg
-    visited = set()
+def resolve_thread(message: RawMessage, index: Dict[str, RawMessage]) -> List[RawMessage]:
+    chain: List[RawMessage] = []
+    current: RawMessage | None = message
+    visited: set[str] = set()
     while current and current.msg_id not in visited:
-        thread.append(current)
+        chain.append(current)
         visited.add(current.msg_id)
         current = index.get(current.reply_to) if current.reply_to else None
-    return list(reversed(thread))
+    return list(reversed(chain))
 
 
-def assemble_contexts(messages: List[RawMessage]) -> List[List[RawMessage]]:
-    """
-    Returns a list of contexts. Each context is a list of related RawMessages
-    that should be sent together to the LLM for extraction.
+def _context_key(context: List[RawMessage]) -> str:
+    return ",".join(sorted(message.msg_id for message in context))
 
-    Priority:
-    1. Messages with reply_to form explicit threads.
-    2. Remaining messages are grouped by (user_id, group_id) within a time window.
-    3. Single standalone messages form their own context.
-    """
-    index = build_reply_index(messages)
-    contexts = []
-    assigned = set()
 
-    # Strategy 1: Build explicit reply threads
-    # Find "leaf" messages (messages that are replied to but don't reply to anything themselves, or the top of a chain)
-    reply_targets = {m.reply_to for m in messages if m.reply_to}
-    
-    for msg in messages:
-        if msg.reply_to and msg.reply_to in index:
-            # This message is part of a reply chain; build the full thread
-            thread = resolve_thread(msg, index)
-            thread_ids = {m.msg_id for m in thread}
-            if not thread_ids.issubset(assigned):
-                contexts.append(thread)
-                assigned.update(thread_ids)
+def context_key(context: List[RawMessage]) -> str:
+    """Stable key used to avoid processing the same context twice."""
+    return _context_key(context)
 
-    # Strategy 2: Time-window grouping for same user/group
-    unassigned = [m for m in messages if m.msg_id not in assigned]
-    
-    # Group by (user_id, group_id)
-    user_groups: Dict[tuple, List[RawMessage]] = defaultdict(list)
-    for msg in unassigned:
-        user_groups[(msg.user_id, msg.group_id)].append(msg)
 
-    for (user_id, group_id), user_msgs in user_groups.items():
-        # Sort by timestamp
-        user_msgs.sort(key=lambda m: m.timestamp)
-        window = []
-        for msg in user_msgs:
-            if msg.msg_id in assigned:
+def assemble_contexts(messages: List[RawMessage], inactivity_seconds: int | None = None) -> List[List[RawMessage]]:
+    if not messages:
+        return []
+
+    ordered = sorted(messages, key=lambda message: (message.event_time, message.msg_id))
+    index = build_reply_index(ordered)
+    assigned: set[str] = set()
+    contexts: List[List[RawMessage]] = []
+
+    # A reply chain is a stronger boundary than a time window. Build from
+    # roots so a three-message chain is not split when the last reply is seen.
+    children: Dict[str, List[RawMessage]] = defaultdict(list)
+    for message in ordered:
+        if message.reply_to and message.reply_to in index:
+            children[message.reply_to].append(message)
+    roots = [message for message in ordered if not message.reply_to or message.reply_to not in index]
+    for root in roots:
+        if root.msg_id in assigned or root.msg_id not in children:
+            continue
+        thread: List[RawMessage] = []
+        queue = [root]
+        while queue:
+            current = queue.pop(0)
+            thread.append(current)
+            queue.extend(sorted(children.get(current.msg_id, []), key=lambda item: (item.event_time, item.msg_id)))
+        contexts.append(sorted(thread, key=lambda item: (item.event_time, item.msg_id)))
+        assigned.update(item.msg_id for item in thread)
+
+    # For messages without a usable reply, group by group and inactivity gap.
+    by_group: Dict[str, List[RawMessage]] = defaultdict(list)
+    for message in ordered:
+        if message.msg_id not in assigned:
+            by_group[message.group_id].append(message)
+
+    window = timedelta(seconds=inactivity_seconds if inactivity_seconds is not None else CONTEXT_INACTIVITY_SECONDS)
+    for group_messages in by_group.values():
+        current: List[RawMessage] = []
+        for message in group_messages:
+            if not current or message.event_time - current[-1].event_time <= window:
+                current.append(message)
                 continue
-            if not window:
-                window.append(msg)
-            else:
-                last_ts = datetime.fromisoformat(window[-1].timestamp.replace("Z", "+00:00"))
-                curr_ts = datetime.fromisoformat(msg.timestamp.replace("Z", "+00:00"))
-                delta = (curr_ts - last_ts).total_seconds()
-                if delta <= TIME_WINDOW_SECONDS:
-                    window.append(msg)
-                else:
-                    # Flush current window
-                    contexts.append(list(window))
-                    assigned.update(m.msg_id for m in window)
-                    window = [msg]
-            assigned.add(msg.msg_id)
-        if window:
-            contexts.append(list(window))
-            assigned.update(m.msg_id for m in window)
+            contexts.append(current)
+            assigned.update(item.msg_id for item in current)
+            current = [message]
+        if current:
+            contexts.append(current)
+            assigned.update(item.msg_id for item in current)
 
-    # Strategy 3: Any remaining truly standalone messages
-    for msg in messages:
-        if msg.msg_id not in assigned:
-            contexts.append([msg])
-
-    return contexts
+    return sorted(contexts, key=lambda context: context[0].event_time)
 
 
 def format_context_for_llm(context: List[RawMessage]) -> str:
-    """Format a context block as a readable string for the LLM prompt."""
-    lines = []
-    for msg in context:
-        reply_note = f" [replying to {msg.reply_to}]" if msg.reply_to else ""
-        lines.append(f"[{msg.timestamp}] {msg.user_id}{reply_note}: {msg.text}")
+    lines = ["<chat_context>"]
+    for message in sorted(context, key=lambda item: item.event_time):
+        reply_note = f" reply_to={message.reply_to}" if message.reply_to else ""
+        lines.append(
+            f"message_id={message.msg_id} time={message.timestamp} "
+            f"group={message.group_id} user={message.user_id}{reply_note}: {message.text}"
+        )
+    lines.append("</chat_context>")
     return "\n".join(lines)
