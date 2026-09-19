@@ -69,8 +69,13 @@ GOLDEN_FIELD_HELP = {
 
 
 def _ui_value(value):
-    """Render missing values as an empty cell instead of the word None."""
-    return "" if value is None else value
+    if value is None:
+        return ""
+    if isinstance(value, bool):
+        return "✅ Pass" if value else "❌ Fail"
+    if isinstance(value, float):
+        return f"{value:g}"
+    return str(value)
 
 
 def _load_user_settings() -> None:
@@ -260,16 +265,29 @@ def render_control() -> None:
     st.divider()
     st.subheader("Golden regression test")
     st.write("Runs the current model and prompt against the hand-labeled cases in `data/golden_cases.jsonl`.")
-    if st.button("Run golden tests", type="secondary"):
-        os.environ["OPENROUTER_MODEL"] = st.session_state.runtime_model
-        os.environ["OPENROUTER_FALLBACK_MODEL"] = st.session_state.runtime_fallback
-        os.environ["USE_FAKE_LLM"] = "1" if st.session_state.runtime_fake else "0"
-        with st.spinner("Running golden cases..."):
-            st.session_state.golden_report = run_golden_suite(inactivity_seconds=st.session_state.runtime_context_window)
-            _save_golden_report(st.session_state.golden_report)
+    if "show_last_run" not in st.session_state:
+        st.session_state.show_last_run = False
+
+    col1, col2, _ = st.columns([2, 2, 8])
+    with col1:
+        if st.button("Run golden tests", type="secondary", use_container_width=True):
+            os.environ["OPENROUTER_MODEL"] = st.session_state.runtime_model
+            os.environ["OPENROUTER_FALLBACK_MODEL"] = st.session_state.runtime_fallback
+            os.environ["USE_FAKE_LLM"] = "1" if st.session_state.runtime_fake else "0"
+            with st.spinner("Running golden cases..."):
+                st.session_state.golden_report = run_golden_suite(inactivity_seconds=st.session_state.runtime_context_window)
+                _save_golden_report(st.session_state.golden_report)
+            st.session_state.show_last_run = True
+
+    with col2:
+        if st.session_state.golden_report:
+            label = "Hide last run" if st.session_state.show_last_run else "Show last run"
+            if st.button(label, use_container_width=True):
+                st.session_state.show_last_run = not st.session_state.show_last_run
+                st.rerun()
 
     report = st.session_state.golden_report
-    if report:
+    if report and st.session_state.show_last_run:
         # Backward compatibility for reports saved before chat/context counts
         # were added to the evaluation result.
         if "input_rows" not in report:
@@ -292,12 +310,12 @@ def render_control() -> None:
         else:
             st.error(f"HOLD — accuracy is below the configured threshold ({st.session_state.golden_min_accuracy:.0%}). Review failures before running the demo.")
         case_rows = [
-            {"Case": item["case_id"], "Chats": item["chat_count"], "Contexts": item["context_count"], "Passed": item["passed"], **item["checks"], "Error": item["error"] or ""}
+            {"Case": item["case_id"], "Chats": item["chat_count"], "Contexts": item["context_count"], "Passed": item["passed"], **{k: _ui_value(v) for k, v in item["checks"].items()}, "Error": item["error"] or ""}
             for item in report["results"]
         ]
         frame = pd.DataFrame(case_rows).fillna("")
         column_config = {
-            name: st.column_config.TextColumn(name, help=GOLDEN_FIELD_HELP.get(name, "Golden field check result."))
+            name: st.column_config.Column(name, help=GOLDEN_FIELD_HELP.get(name, "Golden field check result."))
             for name in frame.columns
             if name not in {"Passed"}
         }
@@ -334,9 +352,36 @@ def render_control() -> None:
         store.reset()
         write_demo_stream()
         messages = load_messages(STREAM_FILE)
-        with st.spinner("Processing demo messages..."):
-            processed, errors = process_new_contexts(store, messages)
-        st.success(f"Processed {processed} contexts and stored {len(store.load_signals())} signals.")
+        
+        contexts = list(assemble_contexts(messages, st.session_state.runtime_context_window))
+        total_contexts = len(contexts)
+        
+        st.write("### Pipeline Progress")
+        progress_bar = st.progress(0, text="1. Extracting and splitting stream into context batches...")
+        log_container = st.empty()
+        
+        processed = 0
+        errors = []
+        for i, context in enumerate(contexts):
+            key = context_key(context)
+            if store.has_context(key):
+                continue
+                
+            log_container.info(f"⚙️ **Step 2:** Sending Batch {i+1}/{total_contexts} to LLM (Context ID: `{key[:8]}` | Message count: {len(context)})")
+            
+            try:
+                extracted = extract_signals(context, format_context_for_llm(context))
+                normalized, _, _ = run_normalization(extracted)
+                store.replace_context_signals(key, [item.msg_id for item in context], normalized)
+                processed += 1
+            except Exception as exc:
+                store.record_failure(key, str(exc))
+                errors.append(f"context {key}: {exc}")
+                
+            progress_bar.progress((i + 1) / total_contexts, text=f"Processed {i+1} of {total_contexts} context batches")
+            
+        log_container.success("✅ **Step 3:** LLM Extraction and Normalization sequence complete!")
+        st.success(f"Processed {processed} contexts and stored {len(store.load_signals())} signals. You can now view them in the Dashboard.")
         if errors:
             st.warning("Some contexts failed; inspect the Dashboard pipeline issues panel.")
     if demo_blocked:
@@ -394,7 +439,19 @@ def render_dashboard() -> None:
         }
         for trend in trends
     ]
-    st.dataframe(pd.DataFrame(trend_rows), use_container_width=True, hide_index=True)
+    trend_config = {
+        "Resource": st.column_config.TextColumn("Resource", help="Canonical resource entity name."),
+        "Supply volume": st.column_config.TextColumn("Supply volume", help="Total aggregated supply volume."),
+        "Demand volume": st.column_config.TextColumn("Demand volume", help="Total aggregated demand volume."),
+        "Median price": st.column_config.TextColumn("Median price", help="Median price of compatible quotes."),
+        "P25": st.column_config.TextColumn("P25", help="25th percentile price."),
+        "P75": st.column_config.TextColumn("P75", help="75th percentile price."),
+        "Samples": st.column_config.NumberColumn("Samples", help="Number of signals contributing to this snapshot."),
+        "Independent offers": st.column_config.NumberColumn("Independent offers", help="Number of unique hashed offers (removes spam)."),
+        "Confidence": st.column_config.TextColumn("Confidence", help="Average LLM confidence score for this resource."),
+        "Availability": st.column_config.TextColumn("Availability", help="Current general availability state."),
+    }
+    st.dataframe(pd.DataFrame(trend_rows), use_container_width=True, hide_index=True, column_config=trend_config)
 
     chart_rows = [{"resource": trend.resource_entity, "median_price": trend.median_price} for trend in trends if trend.median_price is not None]
     if chart_rows:
@@ -412,22 +469,22 @@ def render_dashboard() -> None:
             "Availability": signal.availability.value,
             "Confidence": f"{signal.confidence_score:.0%}",
             "Evidence": ", ".join(signal.source_msg_ids),
-            "Explanation": signal.explanation,
+            "Explanation": _ui_value(signal.explanation),
         }
         for signal in reversed(signals)
     ]
     if signal_rows:
         signal_frame = pd.DataFrame(signal_rows)
         signal_config = {
-            "Resource": st.column_config.TextColumn("Resource", width="medium"),
-            "Kind": st.column_config.TextColumn("Kind", width="small"),
-            "Direction": st.column_config.TextColumn("Direction", width="small"),
-            "Price": st.column_config.TextColumn("Price", width="small"),
-            "Volume": st.column_config.TextColumn("Volume", width="small"),
-            "Availability": st.column_config.TextColumn("Availability", width="small"),
-            "Confidence": st.column_config.TextColumn("Confidence", width="small"),
-            "Evidence": st.column_config.TextColumn("Evidence", width="medium"),
-            "Explanation": st.column_config.TextColumn("Explanation", width="large"),
+            "Resource": st.column_config.TextColumn("Resource", width="medium", help="Canonical resource entity name."),
+            "Kind": st.column_config.TextColumn("Kind", width="small", help="Type of signal (e.g., offer, request)."),
+            "Direction": st.column_config.TextColumn("Direction", width="small", help="Supply or demand direction."),
+            "Price": st.column_config.TextColumn("Price", width="small", help="Raw price string or parsed numeric value."),
+            "Volume": st.column_config.TextColumn("Volume", width="small", help="Raw volume string or parsed numeric value."),
+            "Availability": st.column_config.TextColumn("Availability", width="small", help="Explicit availability state (e.g. out of stock)."),
+            "Confidence": st.column_config.TextColumn("Confidence", width="small", help="LLM extraction confidence score."),
+            "Evidence": st.column_config.TextColumn("Evidence", width="medium", help="Message IDs used as evidence for this signal."),
+            "Explanation": st.column_config.TextColumn("Explanation", width="large", help="LLM's reasoning and rationale for this extraction."),
         }
         st.dataframe(signal_frame, use_container_width=True, hide_index=True, column_config=signal_config, height=520)
     else:
@@ -451,6 +508,11 @@ st.markdown(
     h1 { margin-top: 0; margin-bottom: 0.25rem; }
     [data-testid="stAppViewContainer"] .main .block-container { padding-top: 2rem; }
     div[data-testid="stAlert"] { margin-top: 0; margin-bottom: 0.5rem; }
+    div[data-baseweb="tab-list"] { justify-content: flex-end; gap: 8px; border-bottom: none; }
+    div[data-baseweb="tab-highlight"] { display: none; }
+    button[data-baseweb="tab"] { font-size: 1.1rem; padding: 10px 20px; border-radius: 8px; border: 1px solid transparent; background: transparent; transition: all 0.2s; }
+    button[data-baseweb="tab"][aria-selected="true"] { background: rgba(37,99,235,0.08); border: 1px solid rgba(37,99,235,0.2); color: #2563eb; }
+    button[data-baseweb="tab"] p { font-size: 1.1rem; font-weight: 600; margin: 0; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -459,23 +521,19 @@ if st.session_state.runtime_fake:
     st.warning("🧪 OFFLINE DEMO MODE · Deterministic fake extractor · No OpenRouter calls")
 else:
     st.info(f"☁️ LIVE MODEL · Primary: `{st.session_state.runtime_model}` · Fallback: `{st.session_state.runtime_fallback}`")
-header_title, header_nav = st.columns([1.7, 1.3])
-with header_title:
-    st.title("Market Signal Intelligence Bot")
-with header_nav:
-    page = st.radio("", ["📊 Dashboard", "⚙️ Settings", "🧪 Control"], key="active_page", horizontal=True, label_visibility="collapsed")
-page_query = {"📊 Dashboard": "dashboard", "⚙️ Settings": "settings", "🧪 Control": "control"}[page]
-if hasattr(st, "query_params") and st.query_params.get("page") != page_query:
-    st.query_params["page"] = page_query
-if page.endswith("Settings"):
-    page = "Settings"
-elif page.endswith("Control"):
-    page = "Control"
-else:
-    page = "Dashboard"
-if page == "Settings":
-    render_settings()
-elif page == "Control":
-    render_control()
-else:
+st.markdown("""
+<div style="display: flex; align-items: center; gap: 14px; margin-bottom: 1rem;">
+    <div style="min-width: 48px; width: 48px; height: 48px; background-color: #dbeafe; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #2563eb; box-shadow: 0 2px 4px rgba(37,99,235,0.1);">
+        <svg style="width: 28px; height: 28px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+    </div>
+    <h1 style="margin: 0; padding: 0;">Market Signal Intelligence Bot</h1>
+</div>
+""", unsafe_allow_html=True)
+tab_dash, tab_ctrl, tab_set = st.tabs(["📊 Dashboard", "🧪 Control", "⚙️ Settings"])
+
+with tab_dash:
     render_dashboard()
+with tab_ctrl:
+    render_control()
+with tab_set:
+    render_settings()
